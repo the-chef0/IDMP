@@ -8,7 +8,7 @@ class ValueModel(nn.Module):
     of the form v = a * alpha + b where a and b are input features, and alpha
     is a learnable parameter.
 
-    Adapted from https://doi.org/10.1609/aaai.v34i02.5502 
+    Implemented from https://doi.org/10.1609/aaai.v34i02.5502 
     """
 
     def __init__(self, alpha: float):
