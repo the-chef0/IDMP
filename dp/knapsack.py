@@ -18,34 +18,34 @@ capacity = 2
 #     return project["novelty"] * alpha + project["experience"]
 
 
-# def knapsack(projects, capacity, alpha):
-#     n = len(projects)
-#     # Initialize DP table
-#     dp = np.zeros((n + 1, capacity + 1))
-#     val = np.zeros((n + 1, capacity + 1))
+def knapsack(projects, capacity, alpha):
+    n = len(projects)
+    # Initialize DP table
+    dp = np.zeros((n + 1, capacity + 1))
+    val = np.zeros((n + 1, capacity + 1))
 
-#     for i in range(1, n + 1):
-#         for w in range(capacity + 1):
-#             if projects[i - 1]["cost"] <= w:
-#                 dp[i][w] = max(
-#                     dp[i - 1][w],
-#                     dp[i - 1][w - projects[i - 1]["cost"]]
-#                     + calculate_value(projects[i - 1], alpha),
-#                 )
-#                 if dp[i - 1][w] > dp[i - 1][
-#                     w - projects[i - 1]["cost"]
-#                 ] + calculate_value(projects[i - 1], alpha):
-#                     val[i][w] = val[i - 1][w]
-#                 else:
-#                     val[i][w] = (
-#                         val[i - 1][w - projects[i - 1]["cost"]]
-#                         + projects[i - 1]["value"]
-#                     )
-#             else:
-#                 dp[i][w] = dp[i - 1][w]
-#                 val[i][w] = val[i - 1][w]
+    for i in range(1, n + 1):
+        for w in range(capacity + 1):
+            if projects[i - 1]["cost"] <= w:
+                dp[i][w] = max(
+                    dp[i - 1][w],
+                    dp[i - 1][w - projects[i - 1]["cost"]]
+                    + calculate_value(projects[i - 1], alpha),
+                )
+                if dp[i - 1][w] > dp[i - 1][
+                    w - projects[i - 1]["cost"]
+                ] + calculate_value(projects[i - 1], alpha):
+                    val[i][w] = val[i - 1][w]
+                else:
+                    val[i][w] = (
+                        val[i - 1][w - projects[i - 1]["cost"]]
+                        + projects[i - 1]["value"]
+                    )
+            else:
+                dp[i][w] = dp[i - 1][w]
+                val[i][w] = val[i - 1][w]
 
-#     return dp[n][capacity], val[n][capacity]
+    return dp[n][capacity], val[n][capacity]
 
 
 # # Vary alpha and collect results
@@ -76,8 +76,16 @@ class space:
         self.intervals = intervals
         self.funcs = funcs
 
+    def __str__(self):
+        res = ""
+        for idx, interval in enumerate(self.intervals):
+            func = self.funcs[idx]
+            res += f"<{interval[0]} - {interval[1]}>, func: {func.slope}x + {func.intercept} \n"
+        return res
+
 
 class magic:
+    
     def max(space1, space2):
         inter_list = magic.intersect(space1, space2)
         res_intervals = []
@@ -114,7 +122,9 @@ class magic:
                 res_intervals.append(higher_interval)
                 res_funcs.append(lower_func)
                 res_funcs.append(higher_func)
-        return space(res_intervals, res_funcs)
+        space3 = space(res_intervals, res_funcs)
+        #print(f'sapce1: {space1} space2: {space2} space3: {space3}')
+        return space3
 
     def intersect(space1, space2):
         i = 0
@@ -123,29 +133,34 @@ class magic:
         nj = len(space2.intervals)
         inter_list = []
         # add first interval to inter_list
-        if space1.intervals[0][1] < space2.intervals[0][1]:
-            inter_list.append((-np.inf, space1.intervals[i][1]))
-            i += 1
-        else:
-            inter_list.append((-np.inf, space2.intervals[j][1]))
-            j += 1
+        front = -np.inf
         # merge
         while True:
             if i < ni and j < nj:
                 if space1.intervals[i][1] < space2.intervals[j][1]:
-                    inter_list.append((inter_list[-1][1], space1.intervals[i][1]))
+                    inter_list.append((front, space1.intervals[i][1]))
+                    front = space1.intervals[i][1]
                     i += 1
+                elif space1.intervals[i][1] == space2.intervals[j][1]:
+                    inter_list.append((front, space1.intervals[i][1]))
+                    front = space1.intervals[i][1]
+                    i += 1
+                    j += 1
                 else:
-                    inter_list.append((inter_list[-1][1], space2.intervals[j][1]))
+                    inter_list.append((front, space2.intervals[j][1]))
+                    front = space2.intervals[j][1]
                     j += 1
             elif i < ni:
-                inter_list.append((inter_list[-1][1], space1.intervals[i][1]))
+                inter_list.append((front, space1.intervals[i][1]))
+                front = space1.intervals[i][1]
                 i += 1
             elif j < nj:
-                inter_list.append((inter_list[-1][1], space2.intervals[j][1]))
+                inter_list.append((front, space2.intervals[j][1]))
+                front = space2.intervals[j][1]
                 j += 1
             else:
                 break
+        # print(inter_list)
         return inter_list
 
     def func_at_interval(space, interval):
@@ -173,26 +188,25 @@ class magic:
 
 
 def funcSac(projects, capacity):
-    np.insert(projects, 0, {})  # to make indexing easier
     n = len(projects)
     dp = np.empty((n + 1, capacity + 1), dtype=object)
     dp[0, :] = space()
     dp[:, 0] = space()
 
-    for i in range(1, n):
-        for w in range(1, capacity + 1):
-            if projects[i]["cost"] <= w:
+    for i in range(1, n + 1):
+        for w in range(capacity + 1):
+            if projects[i-1]["cost"] <= w:
                 dp[i][w] = magic.max(
                     dp[i - 1][w],
                     magic.add(
-                        dp[i - 1][w - projects[i]["cost"]],
-                        func(projects[i]["novelty"], projects[i]["experience"]),
+                        dp[i - 1][w - projects[i-1]["cost"]],
+                        func(projects[i-1]["novelty"], projects[i-1]["experience"]),
                     ),
                 )
             else:
                 dp[i][w] = dp[i - 1][w]
-    return dp[n][capacity]
+    return dp
 
 
-print(funcSac(projects, capacity))
+print(funcSac(projects, capacity)[4][2])
 # space1 = space([(np.inf)])
