@@ -66,13 +66,14 @@ def knapsack(projects, capacity, alpha):
 
 
 class func:
-    def __init__(self, slope, intercept):
+    def __init__(self, slope, intercept, items=[]):
         self.slope = slope
         self.intercept = intercept
+        self.items = items
 
 
 class space:
-    def __init__(self, intervals=[(-np.inf, np.inf)], funcs=[func(0, 0)]):
+    def __init__(self, intervals=[(-10, 10)], funcs=[func(0, 0)]):
         self.intervals = intervals
         self.funcs = funcs
 
@@ -80,9 +81,8 @@ class space:
         res = ""
         for idx, interval in enumerate(self.intervals):
             func = self.funcs[idx]
-            res += f"<{interval[0]} - {interval[1]}>, func: {func.slope}x + {func.intercept} \n"
+            res += f"<{interval[0]} - {interval[1]}>, func: {func.slope}x + {func.intercept}, items: {func.items}\n"
         return res
-
 
 class magic:
     
@@ -97,15 +97,18 @@ class magic:
             m = magic.intersect_point(func1, func2, interval)
             if not m:
                 # add interval
-                res_intervals.append(interval)
+                
                 # add highest function at that interval
                 if (
                     func1.slope * (interval[0] + 1e-5) + func1.intercept
                     > func2.slope * (interval[0] + 1e-5) + func2.intercept
                 ):
-                    res_funcs.append(func1)
+                    res_func = func1
                 else:
-                    res_funcs.append(func2)
+                    res_func = func2
+                # check if line is the same, if so increase the interval
+                res_intervals.append(interval)
+                res_funcs.append(res_func)
             else:
                 lower_interval = (interval[0], m)
                 higher_interval = (m, interval[1])
@@ -118,12 +121,21 @@ class magic:
                 else:
                     lower_func = func2
                     higher_func = func1
+                
                 res_intervals.append(lower_interval)
-                res_intervals.append(higher_interval)
                 res_funcs.append(lower_func)
+
+                res_intervals.append(higher_interval)
                 res_funcs.append(higher_func)
+            if len(res_intervals)>=2 and res_funcs[-2].slope == res_funcs[-1].slope and res_funcs[-2].intercept == res_funcs[-1].intercept:
+                new_interval = (res_intervals[-2][0], res_intervals[-1][1])
+                del res_intervals[(len(res_intervals)-1)]
+                del res_funcs[(len(res_funcs)-1)]
+
+                del res_intervals[(len(res_intervals)-1)]
+                res_intervals.append(new_interval)
         space3 = space(res_intervals, res_funcs)
-        #print(f'sapce1: {space1} space2: {space2} space3: {space3}')
+        print(f'sapce1: {space1} space2: {space2} space3: {space3}')
         return space3
 
     def intersect(space1, space2):
@@ -133,7 +145,7 @@ class magic:
         nj = len(space2.intervals)
         inter_list = []
         # add first interval to inter_list
-        front = -np.inf
+        front = -10
         # merge
         while True:
             if i < ni and j < nj:
@@ -177,13 +189,15 @@ class magic:
         else:
             return m
 
-    def add(space1, func1):
+    def add(space1, func1, item):
         inter_list = space1.intervals
         res_func = []
         for space_function in space1.funcs:
             a = space_function.slope + func1.slope
             b = space_function.intercept + func1.intercept
-            res_func.append(func(a, b))
+            items = space_function.items.copy()
+            items.append(item)
+            res_func.append(func(a, b, items))
         return space(inter_list, res_func)
 
 
@@ -201,6 +215,7 @@ def funcSac(projects, capacity):
                     magic.add(
                         dp[i - 1][w - projects[i-1]["cost"]],
                         func(projects[i-1]["novelty"], projects[i-1]["experience"]),
+                        i-1,
                     ),
                 )
             else:
@@ -208,5 +223,10 @@ def funcSac(projects, capacity):
     return dp
 
 
-print(funcSac(projects, capacity)[4][2])
-# space1 = space([(np.inf)])
+res = funcSac(projects, capacity)[4][2]
+print(res)
+
+for interval, function in zip(res.intervals, res.funcs):
+    plt.plot([interval[0], interval[1]], [function.slope * interval[0] + function.intercept, function.slope * interval[1] + function.intercept], '-', color="blue")
+    plt.plot([interval[0], interval[1]], [sum([projects[idx]['value'] for idx in function.items])] * 2, '-', color="orange")
+plt.savefig("knapsack_value_vs_alpha.png")
