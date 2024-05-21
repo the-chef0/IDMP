@@ -229,4 +229,8 @@ print(res)
 for interval, function in zip(res.intervals, res.funcs):
     plt.plot([interval[0], interval[1]], [function.slope * interval[0] + function.intercept, function.slope * interval[1] + function.intercept], '-', color="blue")
     plt.plot([interval[0], interval[1]], [sum([projects[idx]['value'] for idx in function.items])] * 2, '-', color="orange")
+plt.xlabel("Alpha")
+plt.ylabel("Total Value")
+plt.title("Knapsack Value vs. Alpha")
+plt.grid(True)
 plt.savefig("knapsack_value_vs_alpha.png")
