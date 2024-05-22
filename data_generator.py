@@ -29,4 +29,4 @@ def generate_data(num_items: int, data_points: int =1000, num_features: int = 1,
     features = np.array(alpha).reshape((n, 1)) # Parameters, in our case Alpha
     values = np.array(real_values)       # Cost of the items
     
-    return weights, features, values
+    return weights, features, values, ni, ei
