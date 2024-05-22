@@ -6,17 +6,20 @@ from matplotlib import colormaps
 
 
 # generate data for 2D knapsack
-m = 10000 # number of items
-n = 1 # number of data????????????????????????????
-p = 2 * m # size of feature
-deg = 2 # polynomial degree
-dim = 1 # dimension of knapsack
-noise_width = 0.5 # noise half-width
-caps = [100] * dim # capacity
-weights, x, c = pyepo.data.knapsack.genData(n, p, m, deg=deg, dim=dim, noise_width=noise_width, seed=36)
+m = 100  # number of items
+n = 1  # number of data????????????????????????????
+p = 2 * m  # size of feature
+deg = 2  # polynomial degree
+dim = 1  # dimension of knapsack
+noise_width = 0.5  # noise half-width
+caps = [10] * dim  # capacity
+weights, x, c = pyepo.data.knapsack.genData(
+    n, p, m, deg=deg, dim=dim, noise_width=noise_width, seed=36
+)
 x = x.reshape((m, -1))
 
 capacity = caps[0]
+
 
 class func:
     def __init__(self, slope, intercept, items=[]):
@@ -37,20 +40,31 @@ class space:
             res += f"<{interval[0]} - {interval[1]}>, func: {func.slope}x + {func.intercept}, items: {func.items}\n"
         return res
 
-class magic:
-    
+
+class DP_Knapsack:
+    def __init__(self, weights, x, left_bound, right_bound):
+        self.weights = weights
+        self.x = x
+        self.left_bound = left_bound
+        self.right_bound = right_bound
+        self.dp = np.empty((self.x.shape[0] + 1, capacity + 1), dtype=object)
+        self.result = space()
+
+    def get_result(self):
+        return self.result
+
     def max(space1, space2):
-        inter_list = magic.intersect(space1, space2)
+        inter_list = DP_Knapsack.intersect(space1, space2)
         res_intervals = []
         res_funcs = []
         for interval in inter_list:
-            func1 = magic.func_at_interval(space1, interval)
-            func2 = magic.func_at_interval(space2, interval)
+            func1 = DP_Knapsack.func_at_interval(space1, interval)
+            func2 = DP_Knapsack.func_at_interval(space2, interval)
             # get intersect
-            m = magic.intersect_point(func1, func2, interval)
+            m = DP_Knapsack.intersect_point(func1, func2, interval)
             if not m:
                 # add interval
-                
+
                 # add highest function at that interval
                 if (
                     func1.slope * (interval[0] + 1e-5) + func1.intercept
@@ -74,21 +88,25 @@ class magic:
                 else:
                     lower_func = func2
                     higher_func = func1
-                
+
                 res_intervals.append(lower_interval)
                 res_funcs.append(lower_func)
 
                 res_intervals.append(higher_interval)
                 res_funcs.append(higher_func)
-            if len(res_intervals)>=2 and res_funcs[-2].slope == res_funcs[-1].slope and res_funcs[-2].intercept == res_funcs[-1].intercept:
+            if (
+                len(res_intervals) >= 2
+                and res_funcs[-2].slope == res_funcs[-1].slope
+                and res_funcs[-2].intercept == res_funcs[-1].intercept
+            ):
                 new_interval = (res_intervals[-2][0], res_intervals[-1][1])
-                del res_intervals[(len(res_intervals)-1)]
-                del res_funcs[(len(res_funcs)-1)]
+                del res_intervals[(len(res_intervals) - 1)]
+                del res_funcs[(len(res_funcs) - 1)]
 
-                del res_intervals[(len(res_intervals)-1)]
+                del res_intervals[(len(res_intervals) - 1)]
                 res_intervals.append(new_interval)
         space3 = space(res_intervals, res_funcs)
-        #print(f'sapce1: {space1} space2: {space2} space3: {space3}')
+        # print(f'sapce1: {space1} space2: {space2} space3: {space3}')
         return space3
 
     def intersect(space1, space2):
@@ -152,39 +170,62 @@ class magic:
             res_func.append(func(a, b, items))
         return space(inter_list, res_func)
 
-def funcSac(weights, x, left_bound, right_bound):
-    n = x.shape[0]
-    dp = np.empty((n + 1, capacity + 1), dtype=object)
-    dp[0, :] = space(intervals=[(left_bound, right_bound)])
-    dp[:, 0] = space(intervals=[(left_bound, right_bound)])
-    int_weights = np.ceil(weights).astype('int')
-    for i in range(1, n + 1):
-        for w in range(capacity + 1):
-            if weights[i-1] <= w:
-                dp[i][w] = magic.max(
-                    dp[i - 1][w],
-                    magic.add(
-                        dp[i - 1][w - int_weights[i-1]],
-                        func(x[i-1][0], x[i-1][1]),
-                        i-1,
-                    ),
+    def plot(linear=True, horizontal=True):
+        for interval, function in zip(res.intervals, res.funcs):
+            if linear:
+                plt.plot(
+                    [interval[0], interval[1]],
+                    [
+                        function.slope * interval[0] + function.intercept,
+                        function.slope * interval[1] + function.intercept,
+                    ],
+                    "-",
+                    color="blue",
                 )
-            else:
-                dp[i][w] = dp[i - 1][w]
-    return dp[n][capacity]
+            if horizontal:
+                plt.plot(
+                    [interval[0], interval[1]],
+                    [sum([c[0][idx] for idx in function.items])] * 2,
+                    "-",
+                    color="orange",
+                )
+        plt.xlabel("Alpha")
+        plt.ylabel("Total Value")
+        plt.title("Knapsack Value vs. Alpha")
+        plt.grid(True)
+        plt.savefig("knapsack_value_vs_alpha.png")
+        return "knapsack_value_vs_alpha.png"
+
+    def solve(self):
+        n = self.x.shape[0]
+        dp = np.empty((n + 1, capacity + 1), dtype=object)
+        dp[0, :] = space(intervals=[(self.left_bound, self.right_bound)])
+        dp[:, 0] = space(intervals=[(self.left_bound, self.right_bound)])
+        int_weights = np.ceil(self.weights).astype("int")
+        for i in range(1, n + 1):
+            for w in range(capacity + 1):
+                if self.weights[i - 1] <= w:
+                    dp[i][w] = DP_Knapsack.max(
+                        dp[i - 1][w],
+                        DP_Knapsack.add(
+                            dp[i - 1][w - int_weights[i - 1]],
+                            func(self.x[i - 1][0], self.x[i - 1][1]),
+                            i - 1,
+                        ),
+                    )
+                else:
+                    dp[i][w] = dp[i - 1][w]
+        self.dp = dp
+        self.result = dp[n][capacity]
+        return dp[n][capacity]
 
 
-res = funcSac(weights[0], x, -6, 6)
-print(res)
+dp_problem = DP_Knapsack(weights[0], x, -6, 6)
+res = dp_problem.solve()
 
-for interval, function in zip(res.intervals, res.funcs):
-    plt.plot([interval[0], interval[1]], [function.slope * interval[0] + function.intercept, function.slope * interval[1] + function.intercept], '-', color="blue")
-    plt.plot([interval[0], interval[1]], [sum([c[0][idx] for idx in function.items])] * 2, '-', color="orange")
-plt.xlabel("Alpha")
-plt.ylabel("Total Value")
-plt.title("Knapsack Value vs. Alpha")
-plt.grid(True)
-plt.savefig("knapsack_value_vs_alpha.png")
+# print(res)
+# plt.imshow(plt.imread(dp_problem.plot()))
+
 
 # def calculate_value(x, alpha):
 #     return x[0] * alpha + x[1]
