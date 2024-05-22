@@ -16,6 +16,4 @@ class ValueModel(nn.Module):
         self.alpha = nn.Parameter(torch.Tensor([alpha]))
 
     def forward(self, input: torch.Tensor) -> torch.Tensor:
-        assert input.shape[1] == 2, f"Number of features must be 2. Got {input.shape[1]}."
-
-        return input[:, 0] * self.alpha + input[:, 1]
+        return (input[0, :] * self.alpha + input[1, :]).unsqueeze(dim=0)
