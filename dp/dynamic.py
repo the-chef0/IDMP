@@ -42,9 +42,10 @@ class space:
 
 
 class DP_Knapsack:
-    def __init__(self, weights, x, left_bound, right_bound):
+    def __init__(self, weights, x, c, left_bound, right_bound):
         self.weights = weights
         self.x = x
+        self.c = c
         self.left_bound = left_bound
         self.right_bound = right_bound
         self.dp = np.empty((self.x.shape[0] + 1, capacity + 1), dtype=object)
@@ -52,6 +53,12 @@ class DP_Knapsack:
 
     def get_result(self):
         return self.result
+
+    def get_y_values(self):
+        return [
+            sum([self.c[0][idx] for idx in function.items])
+            for function in self.result.funcs
+        ]
 
     def max(space1, space2):
         inter_list = DP_Knapsack.intersect(space1, space2)
@@ -170,8 +177,8 @@ class DP_Knapsack:
             res_func.append(func(a, b, items))
         return space(inter_list, res_func)
 
-    def plot(linear=True, horizontal=True):
-        for interval, function in zip(res.intervals, res.funcs):
+    def plot(self, linear=True, horizontal=True):
+        for interval, function in zip(self.result.intervals, self.result.funcs):
             if linear:
                 plt.plot(
                     [interval[0], interval[1]],
@@ -185,7 +192,7 @@ class DP_Knapsack:
             if horizontal:
                 plt.plot(
                     [interval[0], interval[1]],
-                    [sum([c[0][idx] for idx in function.items])] * 2,
+                    [sum([self.c[0][idx] for idx in function.items])] * 2,
                     "-",
                     color="orange",
                 )
@@ -220,12 +227,13 @@ class DP_Knapsack:
         return dp[n][capacity]
 
 
-dp_problem = DP_Knapsack(weights[0], x, -6, 6)
-res = dp_problem.solve()
-
-# print(res)
-# plt.imshow(plt.imread(dp_problem.plot()))
-
+dp_problem = DP_Knapsack(weights[0], x, c, -6, 6)
+dp_problem.solve()
+print(dp_problem.result)
+dp_problem.plot()
+plt.show()
+print(dp_problem.get_result().intervals)
+print(dp_problem.get_y_values())
 
 # def calculate_value(x, alpha):
 #     return x[0] * alpha + x[1]
