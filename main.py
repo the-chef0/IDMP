@@ -7,7 +7,7 @@ import torch
 from torch.utils.data import DataLoader
 
 from data_generator import generate_data
-from dynamic_programming import get_true_gradients
+from dp.dynamic import DP_Knapsack
 from predmodel import ValueModel
 
 num_items = 100
@@ -24,13 +24,9 @@ pfy = perturbedFenchelYoung(optmodel=optmodel)
 
 alpha_values = np.arange(-15, 15, 0.05)
 
-# Get true gradients with DP
-# true_gradients = get_true_gradients(
-#     weights=weights,
-#     features=features,
-#     values=values,
-#     alpha_values=alpha_values
-# )
+# Estimate gradients with dynamic programming
+dp_model = DP_Knapsack(weights[0], features, values, alpha_values[0], alpha_values[-1])
+dp_model.solve()
 
 # Estimate gradients with loss functions
 spop_gradients = []
@@ -54,4 +50,5 @@ for data in dataloader:
 
 plt.plot(alpha_values, spop_gradients)
 plt.plot(alpha_values, pfy_gradients)
+dp_model.plot()
 plt.savefig("grads.png")
