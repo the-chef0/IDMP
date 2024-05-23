@@ -178,30 +178,34 @@ class DP_Knapsack:
         return space(inter_list, res_func)
 
     def plot(self, linear=True, horizontal=True):
+        linear_plots = []
+        horizontal_plots = []
+
         for interval, function in zip(self.result.intervals, self.result.funcs):
             if linear:
-                plt.plot(
+                linear_plot = plt.plot(
                     [interval[0], interval[1]],
                     [
                         function.slope * interval[0] + function.intercept,
                         function.slope * interval[1] + function.intercept,
                     ],
-                    "-",
-                    color="blue",
+                    "--",
+                    color="red",
                 )
+
+                linear_plots.append(linear_plot[0])
+
             if horizontal:
-                plt.plot(
+                horizontal_plot = plt.plot(
                     [interval[0], interval[1]],
                     [sum([self.c[0][idx] for idx in function.items])] * 2,
-                    "-",
-                    color="orange",
+                    "--",
+                    color="red",
                 )
-        plt.xlabel("Alpha")
-        plt.ylabel("Total Value")
-        plt.title("Knapsack Value vs. Alpha")
-        plt.grid(True)
-        plt.savefig("knapsack_value_vs_alpha.png")
-        return "knapsack_value_vs_alpha.png"
+
+                horizontal_plots.append(horizontal_plot[0])
+
+        return tuple(linear_plots), tuple(horizontal_plots)
 
     def solve(self):
         n = self.x.shape[0]
@@ -227,13 +231,13 @@ class DP_Knapsack:
         return dp[n][capacity]
 
 
-dp_problem = DP_Knapsack(weights[0], x, c, -6, 6)
-dp_problem.solve()
-print(dp_problem.result)
-dp_problem.plot()
-plt.show()
-print(dp_problem.get_result().intervals)
-print(dp_problem.get_y_values())
+# dp_problem = DP_Knapsack(weights[0], x, c, -6, 6)
+# dp_problem.solve()
+# print(dp_problem.result)
+# dp_problem.plot()
+# plt.show()
+# print(dp_problem.get_result().intervals)
+# print(dp_problem.get_y_values())
 
 # def calculate_value(x, alpha):
 #     return x[0] * alpha + x[1]
