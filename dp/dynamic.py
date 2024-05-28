@@ -3,22 +3,25 @@ import matplotlib
 import numpy as np
 from matplotlib import pyplot as plt
 from matplotlib import colormaps
+import torch
 
 
-# generate data for 2D knapsack
-m = 100  # number of items
-n = 1  # number of data????????????????????????????
-p = 2 * m  # size of feature
-deg = 2  # polynomial degree
-dim = 1  # dimension of knapsack
-noise_width = 0.5  # noise half-width
-caps = [10] * dim  # capacity
-weights, x, c = pyepo.data.knapsack.genData(
-    n, p, m, deg=deg, dim=dim, noise_width=noise_width, seed=36
-)
-x = x.reshape((m, -1))
+# # generate data for 2D knapsack
+# m = 100  # number of items
+# n = 1  # number of data????????????????????????????
+# p = 2 * m  # size of feature
+# deg = 2  # polynomial degree
+# dim = 1  # dimension of knapsack
+# noise_width = 0.5  # noise half-width
+# caps = [10] * dim  # capacity
+# weights, x, c = pyepo.data.knapsack.genData(
+#     n, p, m, deg=deg, dim=dim, noise_width=noise_width, seed=36
+# )
+# # x = x.reshape((m, -1))
+# print("AAAAAAAAAAAAA", x.shape)
+# x = torch.reshape(torch.Tensor(x), (m, -1))
 
-capacity = caps[0]
+# capacity = caps[0]
 
 
 class func:
@@ -42,10 +45,12 @@ class space:
 
 
 class DP_Knapsack:
-    def __init__(self, weights, x, c, left_bound, right_bound):
+    def __init__(self, weights, x, c, capacity, left_bound, right_bound):
+
         self.weights = weights
         self.x = x
         self.c = c
+        self.capacity = capacity
         self.left_bound = left_bound
         self.right_bound = right_bound
         self.dp = np.empty((self.x.shape[0] + 1, capacity + 1), dtype=object)
@@ -209,12 +214,12 @@ class DP_Knapsack:
 
     def solve(self):
         n = self.x.shape[0]
-        dp = np.empty((n + 1, capacity + 1), dtype=object)
+        dp = np.empty((n + 1, self.capacity + 1), dtype=object)
         dp[0, :] = space(intervals=[(self.left_bound, self.right_bound)])
         dp[:, 0] = space(intervals=[(self.left_bound, self.right_bound)])
         int_weights = np.ceil(self.weights).astype("int")
         for i in range(1, n + 1):
-            for w in range(capacity + 1):
+            for w in range(self.capacity + 1):
                 if self.weights[i - 1] <= w:
                     dp[i][w] = DP_Knapsack.max(
                         dp[i - 1][w],
@@ -227,8 +232,8 @@ class DP_Knapsack:
                 else:
                     dp[i][w] = dp[i - 1][w]
         self.dp = dp
-        self.result = dp[n][capacity]
-        return dp[n][capacity]
+        self.result = dp[n][self.capacity]
+        return dp[n][self.capacity]
 
 
 # dp_problem = DP_Knapsack(weights[0], x, c, -6, 6)
@@ -265,7 +270,7 @@ class DP_Knapsack:
 #     return dp[n][capacity], val[n][capacity]
 
 
-# # Vary alpha and collect results
+# Vary alpha and collect results
 # alphas = np.linspace(-2, 6, 1000)
 # values = [knapsack(weights[0], x, c[0], alpha)[0] for alpha in alphas]
 # true_values = [knapsack(weights[0], x, c[0], alpha)[1] for alpha in alphas]
