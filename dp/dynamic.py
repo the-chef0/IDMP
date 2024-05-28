@@ -6,7 +6,7 @@ from matplotlib import colormaps
 import torch
 
 
-# # generate data for 2D knapsack
+# generate data for 2D knapsack
 # m = 100  # number of items
 # n = 1  # number of data????????????????????????????
 # p = 2 * m  # size of feature
@@ -19,7 +19,7 @@ import torch
 # )
 # # x = x.reshape((m, -1))
 # print("AAAAAAAAAAAAA", x.shape)
-# x = torch.reshape(torch.Tensor(x), (m, -1))
+# x = torch.reshape(torch.Tensor(x), (2, m))
 
 # capacity = caps[0]
 
@@ -53,7 +53,7 @@ class DP_Knapsack:
         self.capacity = capacity
         self.left_bound = left_bound
         self.right_bound = right_bound
-        self.dp = np.empty((self.x.shape[0] + 1, capacity + 1), dtype=object)
+        self.dp = np.empty((self.x.shape[1] + 1, capacity + 1), dtype=object)
         self.result = space()
 
     def get_result(self):
@@ -213,7 +213,7 @@ class DP_Knapsack:
         return tuple(linear_plots), tuple(horizontal_plots)
 
     def solve(self):
-        n = self.x.shape[0]
+        n = self.x.shape[1]
         dp = np.empty((n + 1, self.capacity + 1), dtype=object)
         dp[0, :] = space(intervals=[(self.left_bound, self.right_bound)])
         dp[:, 0] = space(intervals=[(self.left_bound, self.right_bound)])
@@ -225,7 +225,7 @@ class DP_Knapsack:
                         dp[i - 1][w],
                         DP_Knapsack.add(
                             dp[i - 1][w - int_weights[i - 1]],
-                            func(self.x[i - 1][0], self.x[i - 1][1]),
+                            func(self.x[0][i - 1], self.x[1][i - 1]),
                             i - 1,
                         ),
                     )
@@ -236,7 +236,7 @@ class DP_Knapsack:
         return dp[n][self.capacity]
 
 
-# dp_problem = DP_Knapsack(weights[0], x, c, -6, 6)
+# dp_problem = DP_Knapsack(weights[0], x, c, 30, -6, 6)
 # dp_problem.solve()
 # print(dp_problem.result)
 # dp_problem.plot()

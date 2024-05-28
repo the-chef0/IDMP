@@ -30,6 +30,7 @@ cave = exactConeAlignedCosine(optmodel=optmodel, solver="clarabel")
 alpha_values = np.arange(-15, 15, 0.05)
 
 # Estimate gradients with dynamic programming
+features = features.reshape((2, num_items))
 dp_model = DP_Knapsack(
     weights[0], features, values, capacity, alpha_values[0], alpha_values[-1]
 )
@@ -51,24 +52,25 @@ for data in dataloader:
         predmodel = ValueModel(alpha=alpha)
         cp = predmodel.forward(x)
 
-        pfy_loss = pfy(cp, w)
-        pfy_loss.backward(retain_graph=True)
-        pfy_values.append(pfy_loss.item())
-        pfy_gradients.append(predmodel.alpha.grad.item())
-
         spop_loss = spop(cp, c, w, z)
         spop_loss.backward(retain_graph=True)
         spop_values.append(spop_loss.item())
         spop_gradients.append(predmodel.alpha.grad.item())
 
-        predmodel = ValueModel(alpha=alpha)
-        cp = predmodel.forward(x)
+        predmodel.zero_grad()
+
+        pfy_loss = pfy(cp, w)
+        pfy_loss.backward(retain_graph=True)
+        pfy_values.append(pfy_loss.item())
+        pfy_gradients.append(predmodel.alpha.grad.item())
+
+        predmodel.zero_grad()
+
         w_cave = torch.unsqueeze(w, dim=0)
         cave_loss = cave(cp, w_cave)
         cave_loss.backward(retain_graph=True)
         cave_values.append(cave_loss.item())
         cave_gradients.append(predmodel.alpha.grad.item())
-
 
 # Plot loss function gradients
 _, horizontal_plots = dp_model.plot(linear=False, horizontal=True)
