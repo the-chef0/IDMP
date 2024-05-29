@@ -73,53 +73,41 @@ for data in dataloader:
         cave_gradients.append(predmodel.alpha.grad.item())
 
 # Plot loss function gradients
+# Create base plot with DP solutions
 _, horizontal_plots = dp_model.plot(linear=False, horizontal=True)
+plt.grid(True)
+plt.xlabel("Alpha")
+plt.ylabel("Gradient")
+
+# Plot SPO on top
 spop_grad_plot = plt.plot(alpha_values, spop_gradients, color="green")
+plt.title("SPO+ loss gradient vs. alpha")
+plt.legend(
+    [horizontal_plots, spop_grad_plot[0]],
+    ["DP", "SPO+"],
+    handler_map={tuple: HandlerTuple(ndivide=None)},
+)
+plt.savefig("spo_grad.png")
+# Remove SPO to create the next plot
+spop_grad_plot[0].remove()
+
 pfy_grad_plot = plt.plot(alpha_values, pfy_gradients, color="blue")
-cave_grad_plot = plt.plot(alpha_values, cave_gradients, color="magenta")
-plt.grid(True)
-plt.title("Loss function gradients vs. alpha")
-plt.xlabel("Alpha")
-plt.ylabel("Gradient")
+plt.title("PFYL gradient vs. alpha")
 plt.legend(
-    [horizontal_plots, spop_grad_plot[0], pfy_grad_plot[0], cave_grad_plot[0]],
-    ["DP", "SPO+", "PFYL", "CaVE"],
+    [horizontal_plots, pfy_grad_plot[0]],
+    ["DP", "PFYL"],
     handler_map={tuple: HandlerTuple(ndivide=None)},
 )
-plt.savefig("gradients.png")
-plt.clf()
-
-# Plot loss function values
-linear_plots, _ = dp_model.plot(linear=True, horizontal=False)
-spop_value_plot = plt.plot(alpha_values, spop_values, color="green")
-pfy_value_plot = plt.plot(alpha_values, pfy_values, color="blue")
-cave_value_plot = plt.plot(alpha_values, cave_values, color="magenta")
-plt.grid(True)
-plt.title("Loss function values vs. alpha")
-plt.xlabel("Alpha")
-plt.ylabel("Loss value")
-plt.legend(
-    [linear_plots, spop_value_plot[0], pfy_value_plot[0], cave_value_plot[0]],
-    ["DP", "SPO+", "PFYL", "CaVE"],
-    handler_map={tuple: HandlerTuple(ndivide=None)},
-)
-plt.savefig("values.png")
-plt.clf()
+plt.savefig("pfy_grad.png")
+pfy_grad_plot[0].remove()
 
 
 cave_grad_plot = plt.plot(alpha_values, cave_gradients, color="magenta")
-plt.grid(True)
-plt.title("Loss function gradients vs. alpha")
-plt.xlabel("Alpha")
-plt.ylabel("Gradient")
-plt.savefig("gradients_cave.png")
-plt.clf()
-
-# Plot loss function values
-cave_value_plot = plt.plot(alpha_values, cave_values, color="magenta")
-plt.grid(True)
-plt.title("Loss function values vs. alpha")
-plt.xlabel("Alpha")
-plt.ylabel("Loss value")
-plt.savefig("values_cave.png")
-plt.clf()
+plt.title("CaVE loss gradient vs. alpha")
+plt.legend(
+    [horizontal_plots, pfy_grad_plot[0]],
+    ["DP", "CaVE"],
+    handler_map={tuple: HandlerTuple(ndivide=None)},
+)
+plt.savefig("cave_grad.png")
+cave_grad_plot[0].remove()
