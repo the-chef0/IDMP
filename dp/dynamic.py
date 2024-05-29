@@ -185,27 +185,36 @@ class DP_Knapsack:
 
     def calculate_arrows(self):
         arrows = []
+        all_vals = [sum([self.c[0][idx] for idx in self.result.funcs[i].items]) for i in range(len(self.result.funcs))]
+        norm = np.max(all_vals) - np.min(all_vals)
         arrow_y = min(func.intercept for func in self.result.funcs) - 1
         for i, (interval, function) in enumerate(zip(self.result.intervals, self.result.funcs)):
-            cur_slope = abs(function.slope)
+            cur_slope = abs(sum([self.c[0][idx] for idx in function.items]))
             if 0 < i < len(self.result.intervals) - 1:
-                next_slope = abs(self.result.funcs[i + 1].slope)
-                prev_slope = abs(self.result.funcs[i - 1].slope)
+                next_slope = abs(sum([self.c[0][idx] for idx in self.result.funcs[i + 1].items]))
+                prev_slope = abs(sum([self.c[0][idx] for idx in self.result.funcs[i-1].items]))
+                
                 if cur_slope < prev_slope or cur_slope < next_slope:
                     if next_slope < prev_slope:
-                        delta = cur_slope - next_slope
+                        delta = (cur_slope - prev_slope)/(norm*0.33)
+                        #print(delta)
                         color = mcolors.to_rgba('red', alpha=min(1, abs(delta)))
                         arrows.append(((interval[1], arrow_y), (interval[0], arrow_y), color))
                     else:
-                        delta = next_slope - cur_slope
+                        delta = (cur_slope - next_slope)/(norm*0.33)
+                        #print(delta)
                         color = mcolors.to_rgba('blue', alpha=min(1, abs(delta)))
                         arrows.append(((interval[0], arrow_y), (interval[1], arrow_y), color))
-            if i == 0 and cur_slope < abs(self.result.funcs[i + 1].slope):
-                delta = abs(self.result.funcs[i + 1].slope) - cur_slope
+
+            if i == 0 and cur_slope < abs(sum([self.c[0][idx] for idx in self.result.funcs[i+1].items])):
+                delta = abs(sum([self.c[0][idx] for idx in self.result.funcs[i+1].items])) - cur_slope
+                print(delta)
                 color = mcolors.to_rgba('blue', alpha=min(1, abs(delta)))
                 arrows.append(((interval[0], arrow_y), (interval[1], arrow_y), color))
-            if i == len(self.result.intervals) - 1 and cur_slope < abs(self.result.funcs[i - 1].slope):
-                delta = cur_slope - abs(self.result.funcs[i - 1].slope)
+
+            if i == len(self.result.intervals) - 1 and cur_slope < abs(sum([self.c[0][idx] for idx in self.result.funcs[i-1].items])):
+                delta = cur_slope - abs(sum([self.c[0][idx] for idx in self.result.funcs[i-1].items]))
+                print(delta)
                 color = mcolors.to_rgba('red', alpha=min(1, abs(delta)))
                 arrows.append(((interval[1], arrow_y), (interval[0], arrow_y), color))
         return arrows

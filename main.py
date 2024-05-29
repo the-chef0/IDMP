@@ -13,9 +13,10 @@ from predmodel import ValueModel
 
 from CaVEmain.src.cave import exactConeAlignedCosine
 
+torch.manual_seed(100)
 
-num_items = 100
-capacity = 30
+num_items = 10
+capacity = 20
 
 weights, features, values = generate_data(num_items=num_items, capacity=capacity)
 
@@ -27,7 +28,7 @@ spop = SPOPlus(optmodel=optmodel)
 pfy = perturbedFenchelYoung(optmodel=optmodel)
 cave = exactConeAlignedCosine(optmodel=optmodel, solver="clarabel")
 
-alpha_values = np.arange(-15, 15, 0.05)
+alpha_values = np.arange(-7, 7, 0.05)
 
 # Estimate gradients with dynamic programming
 features = features.reshape((2, num_items))
@@ -82,11 +83,11 @@ plt.ylabel("Gradient")
 # Plot SPO on top
 spop_grad_plot = plt.plot(alpha_values, spop_gradients, color="green")
 plt.title("SPO+ loss gradient vs. alpha")
-plt.legend(
-    [horizontal_plots, spop_grad_plot[0]],
-    ["DP", "SPO+"],
-    handler_map={tuple: HandlerTuple(ndivide=None)},
-)
+# plt.legend(
+#     [horizontal_plots, spop_grad_plot[0]],
+#     ["DP", "SPO+"],
+#     handler_map={tuple: HandlerTuple(ndivide=None)},
+# )
 plt.savefig("spo_grad.png")
 # Remove SPO to create the next plot
 spop_grad_plot[0].remove()
@@ -102,12 +103,12 @@ plt.savefig("pfy_grad.png")
 pfy_grad_plot[0].remove()
 
 
-cave_grad_plot = plt.plot(alpha_values, cave_gradients, color="magenta")
+cave_grad_plot = plt.plot(alpha_values, spop_gradients, color="green")
 plt.title("CaVE loss gradient vs. alpha")
 plt.legend(
     [horizontal_plots, pfy_grad_plot[0]],
-    ["DP", "CaVE"],
+    ["DP", "SPO+"],
     handler_map={tuple: HandlerTuple(ndivide=None)},
 )
-plt.savefig("cave_grad.png")
+plt.savefig("SPO_grad.png")
 cave_grad_plot[0].remove()
