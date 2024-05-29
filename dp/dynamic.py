@@ -1,6 +1,7 @@
 import pyepo
 import matplotlib
 import numpy as np
+import matplotlib.colors as mcolors
 from matplotlib import pyplot as plt
 from matplotlib import colormaps
 import torch
@@ -182,6 +183,33 @@ class DP_Knapsack:
             res_func.append(func(a, b, items))
         return space(inter_list, res_func)
 
+    def calculate_arrows(self):
+        arrows = []
+        arrow_y = min(func.intercept for func in self.result.funcs) - 1
+        for i, (interval, function) in enumerate(zip(self.result.intervals, self.result.funcs)):
+            cur_slope = abs(function.slope)
+            if 0 < i < len(self.result.intervals) - 1:
+                next_slope = abs(self.result.funcs[i + 1].slope)
+                prev_slope = abs(self.result.funcs[i - 1].slope)
+                if cur_slope < prev_slope or cur_slope < next_slope:
+                    if next_slope < prev_slope:
+                        delta = cur_slope - next_slope
+                        color = mcolors.to_rgba('red', alpha=min(1, abs(delta)))
+                        arrows.append(((interval[1], arrow_y), (interval[0], arrow_y), color))
+                    else:
+                        delta = next_slope - cur_slope
+                        color = mcolors.to_rgba('blue', alpha=min(1, abs(delta)))
+                        arrows.append(((interval[0], arrow_y), (interval[1], arrow_y), color))
+            if i == 0 and cur_slope < abs(self.result.funcs[i + 1].slope):
+                delta = abs(self.result.funcs[i + 1].slope) - cur_slope
+                color = mcolors.to_rgba('blue', alpha=min(1, abs(delta)))
+                arrows.append(((interval[0], arrow_y), (interval[1], arrow_y), color))
+            if i == len(self.result.intervals) - 1 and cur_slope < abs(self.result.funcs[i - 1].slope):
+                delta = cur_slope - abs(self.result.funcs[i - 1].slope)
+                color = mcolors.to_rgba('red', alpha=min(1, abs(delta)))
+                arrows.append(((interval[1], arrow_y), (interval[0], arrow_y), color))
+        return arrows
+
     def plot(self, linear=True, horizontal=True):
         linear_plots = []
         horizontal_plots = []
@@ -209,6 +237,10 @@ class DP_Knapsack:
                 )
 
                 horizontal_plots.append(horizontal_plot[0])
+
+        arrows = self.calculate_arrows()
+        for (start, end, color) in arrows:
+            plt.annotate('', xy=end, xytext=start, arrowprops=dict(arrowstyle='->', color=color))
 
         return tuple(linear_plots), tuple(horizontal_plots)
 
