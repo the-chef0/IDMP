@@ -3,11 +3,12 @@ import numpy as np
 # The weights are random between 3 and 8
 # The alpha values are sampled uniformly between -10 and 10
 
-np.random.seed(16)
+
 
 def generate_data(
-    num_items: int, data_points: int = 1, num_features: int = 1, capacity: int = 20
-):
+    num_items: int, data_points: int = 1, num_features: int = 1, capacity: int = 20,
+seed = 42):
+    np.random.seed(seed)
     # generate data for 1D knapsack
     m = num_items  # m number of items
     n = data_points  # n number of data AKA number of ALPHAs
