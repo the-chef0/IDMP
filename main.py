@@ -15,10 +15,10 @@ from CaVEmain.src.cave import exactConeAlignedCosine
 
 torch.manual_seed(100)
 
-num_items = 10
-capacity = 20
+num_items = 100
+capacity = 60
 
-weights, features, values = generate_data(num_items=num_items, capacity=capacity)
+weights, features, values = generate_data(num_items=num_items, capacity=capacity, seed=30)
 
 optmodel = knapsackModel(weights=weights, capacity=capacity)
 dataset = dataset.optDataset(model=optmodel, feats=features, costs=values)
@@ -75,40 +75,49 @@ for data in dataloader:
 
 # Plot loss function gradients
 # Create base plot with DP solutions
-_, horizontal_plots = dp_model.plot(linear=False, horizontal=True)
+linear_plots, horzizontal_plots, loss_plots, intervals = dp_model.plot(linear=True, horizontal=True, loss=True, z=torch.squeeze(z, dim=0).item())
 plt.grid(True)
 plt.xlabel("Alpha")
-plt.ylabel("Gradient")
+plt.ylabel("loss")
+# Plot SPO loss
+spop_loss_plot = plt.plot(alpha_values, spop_values, color="green", label='SPO+')
+for interval, loss in zip(intervals, loss_plots):
+    plt.plot(interval, loss, '--', color='red',)
+plt.legend(['SPO+','SPO'])
+plt.savefig("spo_loss.png")
 
+plt.clf()
+# Remove SPO+ to create the next plot
+# spop_loss_plot[0].remove()
 # Plot SPO on top
-spop_grad_plot = plt.plot(alpha_values, spop_gradients, color="green")
-plt.title("SPO+ loss gradient vs. alpha")
+# spop_grad_plot = plt.plot(alpha_values, spop_gradients, color="green")
+# plt.title("SPO+ loss gradient vs. alpha")
 # plt.legend(
 #     [horizontal_plots, spop_grad_plot[0]],
 #     ["DP", "SPO+"],
 #     handler_map={tuple: HandlerTuple(ndivide=None)},
 # )
-plt.savefig("spo_grad.png")
-# Remove SPO to create the next plot
-spop_grad_plot[0].remove()
+# plt.savefig("spo_grad.png")
+# # Remove SPO+ to create the next plot
+# spop_grad_plot[0].remove()
 
-pfy_grad_plot = plt.plot(alpha_values, pfy_gradients, color="blue")
-plt.title("PFYL gradient vs. alpha")
-plt.legend(
-    [horizontal_plots, pfy_grad_plot[0]],
-    ["DP", "PFYL"],
-    handler_map={tuple: HandlerTuple(ndivide=None)},
-)
-plt.savefig("pfy_grad.png")
-pfy_grad_plot[0].remove()
+# pfy_grad_plot = plt.plot(alpha_values, pfy_gradients, color="blue")
+# plt.title("PFYL gradient vs. alpha")
+# plt.legend(
+#     [horizontal_plots, pfy_grad_plot[0]],
+#     ["DP", "PFYL"],
+#     handler_map={tuple: HandlerTuple(ndivide=None)},
+# )
+# plt.savefig("pfy_grad.png")
+# pfy_grad_plot[0].remove()
 
 
-cave_grad_plot = plt.plot(alpha_values, spop_gradients, color="green")
-plt.title("CaVE loss gradient vs. alpha")
-plt.legend(
-    [horizontal_plots, pfy_grad_plot[0]],
-    ["DP", "SPO+"],
-    handler_map={tuple: HandlerTuple(ndivide=None)},
-)
-plt.savefig("SPO_grad.png")
-cave_grad_plot[0].remove()
+# cave_grad_plot = plt.plot(alpha_values, spop_gradients, color="green")
+# plt.title("CaVE loss gradient vs. alpha")
+# plt.legend(
+#     [horizontal_plots, pfy_grad_plot[0]],
+#     ["DP", "SPO+"],
+#     handler_map={tuple: HandlerTuple(ndivide=None)},
+# )
+# plt.savefig("SPO_grad.png")
+# cave_grad_plot[0].remove()

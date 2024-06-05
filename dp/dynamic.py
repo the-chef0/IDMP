@@ -219,39 +219,35 @@ class DP_Knapsack:
                 arrows.append(((interval[1], arrow_y), (interval[0], arrow_y), color))
         return arrows
 
-    def plot(self, linear=True, horizontal=True):
+    def plot(self, linear=True, horizontal=True, loss=False, z = None):
         linear_plots = []
         horizontal_plots = []
-
+        loss_plots = []
+        intervals = []
         for interval, function in zip(self.result.intervals, self.result.funcs):
+            intervals.append([interval[0], interval[1]])
             if linear:
-                linear_plot = plt.plot(
-                    [interval[0], interval[1]],
+                linear_plots.append(
                     [
                         function.slope * interval[0] + function.intercept,
                         function.slope * interval[1] + function.intercept,
-                    ],
-                    "--",
-                    color="red",
+                    ]
                 )
-
-                linear_plots.append(linear_plot[0])
 
             if horizontal:
-                horizontal_plot = plt.plot(
-                    [interval[0], interval[1]],
-                    [sum([self.c[0][idx] for idx in function.items])] * 2,
-                    "--",
-                    color="red",
+                horizontal_plots.append(
+                    [sum([self.c[0][idx] for idx in function.items])] * 2
                 )
-
-                horizontal_plots.append(horizontal_plot[0])
-
+            if loss and z:
+                loss_plots.append(
+                    [z - sum([self.c[0][idx] for idx in function.items])] * 2,
+                )
+                
         arrows = self.calculate_arrows()
         for (start, end, color) in arrows:
             plt.annotate('', xy=end, xytext=start, arrowprops=dict(arrowstyle='->', color=color))
 
-        return tuple(linear_plots), tuple(horizontal_plots)
+        return linear_plots, horizontal_plots, loss_plots, intervals
 
     def solve(self):
         n = self.x.shape[1]
