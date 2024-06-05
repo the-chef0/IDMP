@@ -15,8 +15,8 @@ from CaVEmain.src.cave import exactConeAlignedCosine
 
 torch.manual_seed(100)
 
-num_items = 10
-capacity = 20
+num_items = 100
+capacity = 30
 
 weights, features, values = generate_data(num_items=num_items, capacity=capacity)
 
@@ -28,7 +28,7 @@ spop = SPOPlus(optmodel=optmodel)
 pfy = perturbedFenchelYoung(optmodel=optmodel)
 cave = exactConeAlignedCosine(optmodel=optmodel, solver="clarabel")
 
-alpha_values = np.arange(-7, 7, 0.05)
+alpha_values = np.arange(-20, 20, 0.05)
 
 # Estimate gradients with dynamic programming
 features = features.reshape((2, num_items))
@@ -67,15 +67,28 @@ for data in dataloader:
 
         predmodel.zero_grad()
 
-        w_cave = torch.unsqueeze(w, dim=0)
-        cave_loss = cave(cp, w_cave)
+        weights_cave = torch.unsqueeze(torch.Tensor(weights), dim=0)
+        cave_loss = cave(cp, weights_cave)
         cave_loss.backward(retain_graph=True)
         cave_values.append(cave_loss.item())
         cave_gradients.append(predmodel.alpha.grad.item())
 
+cave_grad_plot = plt.plot(alpha_values, cave_gradients, color="magenta")
+plt.title("CaVE loss gradient vs. alpha")
+plt.legend(
+    [cave_grad_plot[0]],
+    ["CaVE"],
+    handler_map={tuple: HandlerTuple(ndivide=None)},
+)
+plt.savefig("CaVE_grad.png")
+cave_grad_plot[0].remove()
+
 # Plot loss function gradients
 # Create base plot with DP solutions
-_, horizontal_plots = dp_model.plot(linear=False, horizontal=True)
+
+# _, horizontal_plots = dp_model.plot(linear=False, horizontal=True)
+dp_model.plot_heatmap()
+
 plt.grid(True)
 plt.xlabel("Alpha")
 plt.ylabel("Gradient")
@@ -94,21 +107,10 @@ spop_grad_plot[0].remove()
 
 pfy_grad_plot = plt.plot(alpha_values, pfy_gradients, color="blue")
 plt.title("PFYL gradient vs. alpha")
-plt.legend(
-    [horizontal_plots, pfy_grad_plot[0]],
-    ["DP", "PFYL"],
-    handler_map={tuple: HandlerTuple(ndivide=None)},
-)
+# plt.legend(
+#     [horizontal_plots, pfy_grad_plot[0]],
+#     ["DP", "PFYL"],
+#     handler_map={tuple: HandlerTuple(ndivide=None)},
+# )
 plt.savefig("pfy_grad.png")
 pfy_grad_plot[0].remove()
-
-
-cave_grad_plot = plt.plot(alpha_values, spop_gradients, color="green")
-plt.title("CaVE loss gradient vs. alpha")
-plt.legend(
-    [horizontal_plots, pfy_grad_plot[0]],
-    ["DP", "SPO+"],
-    handler_map={tuple: HandlerTuple(ndivide=None)},
-)
-plt.savefig("SPO_grad.png")
-cave_grad_plot[0].remove()
