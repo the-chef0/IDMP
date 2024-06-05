@@ -67,8 +67,8 @@ for data in dataloader:
 
         predmodel.zero_grad()
 
-        w_cave = torch.unsqueeze(w, dim=0)
-        cave_loss = cave(cp, w_cave)
+        weights_cave = torch.unsqueeze(torch.Tensor(weights), dim=0)
+        cave_loss = cave(cp, weights_cave)
         cave_loss.backward(retain_graph=True)
         cave_values.append(cave_loss.item())
         cave_gradients.append(predmodel.alpha.grad.item())
