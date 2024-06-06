@@ -11,13 +11,16 @@ from data_generator import generate_data
 from dp.dynamic import DP_Knapsack
 from predmodel import ValueModel
 
-num_runs = 50
+num_runs = 1000
 tf_runs = []
-alphas = []
+spop_alphas = []
+dp_alphas = []
 alpha_values = np.arange(-7, 7, 0.05)
 num_items = 10
 capacity = 20
 for i in range(num_runs):
+    if i % 10 == 0:
+        print(f"Running iteration: {i}")
     torch.manual_seed(i)
 
     weights, features, values = generate_data(num_items=num_items, capacity=capacity)
@@ -70,46 +73,66 @@ for i in range(num_runs):
         handler_map={tuple: HandlerTuple(ndivide=None)},
     )
 
-    max_jump = 0
-    max_alpha = None
+    spop_alpha = None
     for j in range(len(alpha_values) - 1):
-        cur_jump = abs(spop_grad_plot[0].get_ydata()[j] - spop_grad_plot[0].get_ydata()[j + 1])
-        if cur_jump > max_jump:
-            max_jump = cur_jump
-            max_alpha = spop_grad_plot[0].get_xdata()[j]
+        if spop_grad_plot[0].get_ydata()[j] <= 0 <= spop_grad_plot[0].get_ydata()[j + 1]:
+            spop_alpha = (spop_grad_plot[0].get_xdata()[j] + spop_grad_plot[0].get_xdata()[j + 1]) / 2
+            break
 
     max_dp_value = 0
     max_dp_range = []
+    dp_alpha = None
     for hor_plot in horizontal_plots:
         cur_dp = hor_plot.get_ydata()[0]
         if cur_dp > max_dp_value:
             max_dp_value = cur_dp
             max_dp_range = hor_plot.get_xdata()
+            dp_alpha = (max_dp_range[0] + max_dp_range[-1]) / 2
 
-    tf_runs.append(max_dp_range[0] < max_alpha < max_dp_range[1])
-    alphas.append(max_alpha)
+    if spop_alpha is not None and dp_alpha is not None:
+        tf_runs.append(max_dp_range[0] < spop_alpha < max_dp_range[1])
+        spop_alphas.append(spop_alpha)
+        dp_alphas.append(dp_alpha)
 
-    plt.title("SPO+ loss gradient vs. alpha")
-    plt.savefig("spo_experiment.png")
-    # [hor_plot.remove() for hor_plot in horizontal_plots]
-    # spop_grad_plot[0].remove()
-    plt.clf()
+        plt.title("SPO+ loss gradient vs. alpha")
+        plt.savefig("spo_experiment.png")
+        # [hor_plot.remove() for hor_plot in horizontal_plots]
+        # spop_grad_plot[0].remove()
+        plt.clf()
 
-unique_alphas = sorted(set(alphas))
-true_counts = [sum(1 for alpha, result in zip(alphas, tf_runs) if alpha == a and result) for a in unique_alphas]
-false_counts = [sum(1 for alpha, result in zip(alphas, tf_runs) if alpha == a and not result) for a in unique_alphas]
 
-# Plotting
-x = range(len(unique_alphas))
-width = 1
+def get_histogram_data(alphas, tf_runs, bins):
+    true_counts = np.zeros(len(bins) - 1)
+    false_counts = np.zeros(len(bins) - 1)
 
-plt.bar(x, true_counts, width, label='True', color='blue')
-plt.bar([i + width for i in x], false_counts, width, label='False', color='red')
+    for i, bin_edge in enumerate(bins[:-1]):
+        in_bin = (alphas >= bins[i]) & (alphas < bins[i + 1])
+        true_counts[i] = np.sum(tf_runs[in_bin])
+        false_counts[i] = np.sum(~tf_runs[in_bin])
 
-plt.xlabel('Alpha')
-plt.ylabel('Counts')
-plt.title('Experiment results by alpha')
-plt.xticks([i + width / 2 for i in x], unique_alphas)
-plt.legend()
+    return true_counts, false_counts
+
+
+width = 0.3
+bins = np.arange(-7, 7.5, width)
+true_counts_spop, false_counts_spop = get_histogram_data(spop_alphas, np.array(tf_runs), bins)
+true_counts_dp, false_counts_dp = get_histogram_data(dp_alphas, np.array(tf_runs), bins)
+
+fig, ax = plt.subplots(2, 1, figsize=(14, 10), sharex=True)
+
+# Plot for spop_alphas
+ax[0].bar(bins[:-1], true_counts_spop, width=width, align='edge', label='True')
+ax[0].bar(bins[:-1], false_counts_spop, width=width, align='edge', bottom=true_counts_spop, label='False')
+ax[0].set_title('spop_alphas')
+ax[0].set_ylabel('Count')
+ax[0].legend()
+
+# Plot for dp_alphas
+ax[1].bar(bins[:-1], true_counts_dp, width=width, align='edge', label='True')
+ax[1].bar(bins[:-1], false_counts_dp, width=width, align='edge', bottom=true_counts_dp, label='False')
+ax[1].set_title('dp_alphas')
+ax[1].set_xlabel('Alpha')
+ax[1].set_ylabel('Count')
+ax[1].legend()
 
 plt.savefig('spo_experiments.png')
