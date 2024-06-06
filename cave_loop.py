@@ -19,14 +19,14 @@ def fill_nan(A):
     A = np.array(A)
     inds = np.arange(A.shape[0])
     good = np.where(np.isfinite(A))
-    f = interpolate.interp1d(inds[good], A[good], bounds_error=False)
+    f = interpolate.interp1d(inds[good], A[good], bounds_error=False, fill_value='extrapolate')
     B = np.where(np.isfinite(A), A, f(inds))
     return B
 
-degrees = [0,1,2,3,4,5]
-#degrees = [3]
+#degrees = [0,1,2,3,4,5]
+degrees = [3]
 experiment_size = 10
-num_items = 50
+num_items = 45
 capacity = 30
 average_MSEs = []
 for deg in degrees:
@@ -59,7 +59,7 @@ for deg in degrees:
                 predmodel = ValueModel(alpha=alpha)
                 cp = predmodel.forward(x)
 
-                weights_cave = torch.unsqueeze(weights, dim=0)
+                weights_cave = torch.unsqueeze(torch.tensor(weights), dim=0)
                 cave_loss = cave(cp, weights_cave)
                 cave_loss.backward(retain_graph=True)
                 cave_values.append(cave_loss.item())
@@ -88,7 +88,6 @@ for deg in degrees:
         for idx, a_val in enumerate(alpha_values):
             error_sum += (grads[idx] - fit(a_val))**2
         MSE_vals.append(error_sum/len(alpha_values))
-
     average_MSEs.append(np.mean(MSE_vals))
 
 print(average_MSEs)
