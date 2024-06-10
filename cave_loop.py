@@ -11,6 +11,7 @@ from dp.dynamic import DP_Knapsack
 from predmodel import ValueModel
 from scipy import interpolate
 from CaVEmain.src.cave import exactConeAlignedCosine
+import pickle
 
 def fill_nan(A):
     """
@@ -29,6 +30,8 @@ experiment_size = 10
 num_items = 50
 capacity = 30
 l_infs = []
+l_infs_relative = []
+MSE_vals = []
 for deg in degrees:
 
     cave_gradients_total = []
@@ -86,6 +89,17 @@ for deg in degrees:
         errors = []
         range = np.max(grads) - np.min(grads)
         for idx, a_val in enumerate(alpha_values):
-            errors.append(np.abs(grads[idx] - fit(a_val))/range * 100)
+            errors.append(np.abs(grads[idx] - fit(a_val)))
         l_infs.append(np.max(errors))
-    print(f'mean: {np.mean(l_infs)}, median: {np.median(l_infs)}, max: {np.max(l_infs)}, variance: {np.var(l_infs)}')
+        l_infs_relative.append(np.max(errors)/range * 100)
+        MSE_vals.append(np.mean(errors **2))
+    print(f'l_infinity: mean: {np.mean(l_infs)}, median: {np.median(l_infs)}, max: {np.max(l_infs)}, variance: {np.var(l_infs)}')
+    print(f'relative l_infinity: mean: {np.mean(l_infs_relative)}, median: {np.median(l_infs_relative)}, max: {np.max(l_infs_relative)}, variance: {np.var(l_infs_relative)}')
+    print(f'MSE: mean: {np.mean(MSE_vals)}, median: {np.median(MSE_vals)}, max: {np.max(MSE_vals)}, variance: {np.var(MSE_vals)}')
+
+    with open('l_infs.pickle', 'wb') as handle:
+        pickle.dump(l_infs, handle)
+    with open('l_infs_relative.pickle', 'wb') as handle:
+        pickle.dump(l_infs_relative, handle)
+    with open('mse_vals.pickle', 'wb') as handle:
+        pickle.dump(MSE_vals, handle)
