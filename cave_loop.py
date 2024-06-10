@@ -26,9 +26,9 @@ def fill_nan(A):
 #degrees = [0,1,2,3,4,5]
 degrees = [3]
 experiment_size = 10
-num_items = 45
+num_items = 50
 capacity = 30
-average_MSEs = []
+l_infs = []
 for deg in degrees:
 
     cave_gradients_total = []
@@ -71,23 +71,21 @@ for deg in degrees:
         fit = np.polynomial.polynomial.Polynomial.fit(alpha_values, scaled_safe_gradients, deg)
         cubic_fits.append(fit)
 
-    #create plots
-    for i in range(experiment_size):
-        plt.plot(alpha_values, cave_gradients_total[i])
-        xx, yy = cubic_fits[i].linspace()
-        plt.plot(xx, yy)
-        plt.savefig(f'cave_fit_{i}_1')
-        plt.clf()
+    # #create plots
+    # for i in range(experiment_size):
+    #     plt.plot(alpha_values, cave_gradients_total[i])
+    #     xx, yy = cubic_fits[i].linspace()
+    #     plt.plot(xx, yy)
+    #     plt.savefig(f'cave_fit_{i}_1')
+    #     plt.clf()
 
-    #calc MSE vals
-    MSE_vals = []
+    #calc relative l_inf norms
     for i in range(experiment_size):
         fit = cubic_fits[i]
         grads = cave_gradients_total[i]
-        error_sum = 0
+        errors = []
+        range = np.max(grads) - np.min(grads)
         for idx, a_val in enumerate(alpha_values):
-            error_sum += (grads[idx] - fit(a_val))**2
-        MSE_vals.append(error_sum/len(alpha_values))
-    average_MSEs.append(np.mean(MSE_vals))
-
-print(average_MSEs)
+            errors.append(np.abs(grads[idx] - fit(a_val))/range * 100)
+        l_infs.append(np.max(errors))
+    print(f'mean: {np.mean(l_infs)}, median: {np.median(l_infs)}, max: {np.max(l_infs)}, variance: {np.var(l_infs)}')
