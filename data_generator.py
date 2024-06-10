@@ -28,8 +28,8 @@ seed = 42):
         data_point = []
         for i in range(m):
             # data_point.append(np.round(np.random.normal(ni[i]*alpha[j] + ei[i], noise),0))   # Cost of the items
-            noise = np.random.normal(0, 2)
-            value = np.sin(ni[i]*alpha[j]) + np.cos(ei[i]) + 2 + noise
+            noise = np.random.uniform(-1, 1)
+            value = 2 * np.sin(ni[i] * alpha[j]) + 2 * np.cos(ei[i]) + 5 + noise
             value = np.round(value, 0)
             data_point.append(value)
             # data_point.append(np.round(np.random.normal(ni[i]*ni[i]*alpha[j] + ei[i], noise),0))   # Cost of the items
