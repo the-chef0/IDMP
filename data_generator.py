@@ -4,10 +4,13 @@ import numpy as np
 # The alpha values are sampled uniformly between -10 and 10
 
 
-
 def generate_data(
-    num_items: int, data_points: int = 1, num_features: int = 1, capacity: int = 20,
-seed = 42):
+    num_items: int,
+    data_points: int = 1,
+    num_features: int = 1,
+    capacity: int = 20,
+    seed=42,
+):
     np.random.seed(seed)
     # generate data for 1D knapsack
     m = num_items  # m number of items
@@ -32,12 +35,14 @@ seed = 42):
             value = np.max(np.sqrt((ni[i] * alpha[j]) ** 2 + ei[i] ** 2 + noise), 0)
             value = np.round(value, 0)
 
-            #Periodic True Values
-            #value = np.round(np.random.normal(ni[i]*7 + ei[i], 0),0)
-            #value = np.round(np.random.normal(ni[i]*(np.cos(alpha[j])+1) + ei[i], noise),0)
-            #value = np.round(np.random.normal(ni[i]*np.absolute(alpha[j]) + ei[i], noise),0)
-            #value = np.round(np.random.normal(np.random.uniform(1, 10), noise),0)
-            #value = np.round(value, 0)
+            # Periodic True Values
+            # value = np.round(np.random.normal(ni[i]*7 + ei[i], 0),0)
+            # value = np.round(
+            #     np.random.normal(ni[i] * (np.cos(alpha[j]) + 1) + ei[i], noise), 0
+            # )
+            # value = np.round(np.random.normal(ni[i]*np.absolute(alpha[j]) + ei[i], noise),0)
+            # value = np.round(np.random.normal(np.random.uniform(1, 10), noise),0)
+            # value = np.round(value, 0)
 
             data_point.append(value)
             # data_point.append(np.round(np.random.normal(ni[i]*ni[i]*alpha[j] + ei[i], noise),0))   # Cost of the items
