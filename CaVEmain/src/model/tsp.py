@@ -10,8 +10,9 @@ from itertools import combinations
 import gurobipy as gp
 import numpy as np
 from gurobipy import GRB
-
-from src.model.utils import unionFind
+import sys
+sys.path.append("CaVEmain/src/model")
+from utils import unionFind
 
 from pyepo.model.grb.tsp import tspABModel
 
