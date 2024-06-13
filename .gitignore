@@ -1,3 +1,4 @@
 pyepo/
 __pycache__/
 *png
+*pickle
