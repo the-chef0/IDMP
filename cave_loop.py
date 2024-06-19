@@ -19,9 +19,7 @@ from CaVEmain.src.model.tsp import tspDFJModel
 # from tsp import tspDFJModel
 import pickle
 
-def generate_tsp_data(seed):
-    # generate data
-    num_node = 10 # node size
+def generate_tsp_data(seed, num_node):
     num_data = 1 # number of training data
     num_feat = 2 * (num_node * (num_node - 1) // 2)# size of feature
     poly_deg = 1 # polynomial degree
@@ -52,18 +50,14 @@ ranges = [4]
 experiment_size = 10
 
 #knapsack params
-num_items = 50
-capacity = 25
+num_items = 10
+capacity = 20
 
-#tsp params
-num_node = 20 # node size
-num_data = 100 # number of training data
-num_feat = 10 # size of feature
-poly_deg = 4 # polynomial degree
-noise = 0.5 # noise width
+# tsp params
+num_node = 5 # node size
 
 res = np.empty((len(degrees), len(ranges)))
-res_sp = np.empty((len(degrees), len(ranges)))
+res_tsp = np.empty((len(degrees), len(ranges)))
 for d_ind, deg in enumerate(degrees):
     l_infs = []
     l_infs_relative = []
@@ -83,18 +77,18 @@ for d_ind, deg in enumerate(degrees):
             torch.manual_seed(i)
             
             weights, features, values = generate_data(num_items=num_items, capacity=capacity, seed=i)
-            x_tsp, c_tsp = generate_tsp_data(seed=i)
+            x_tsp, c_tsp = generate_tsp_data(seed=i, num_node=num_node)
 
             optmodel = knapsackModel(weights=weights, capacity=capacity)
-            data_set = dataset.optDataset(model=optmodel, feats=features, costs=values)
+            data_set = optDatasetConstrs(model=optmodel, feats=features, costs=values)
             dataloader = DataLoader(data_set, batch_size=1, shuffle=True)
 
             optmodel_tsp = tspDFJModel(num_node)
-            dataset_tsp = optDatasetConstrs(optmodel, x_tsp, c_tsp)
-            dataloader_tsp = DataLoader(dataset, batch_size=1, collate_fn=collate_fn, shuffle=True)
+            dataset_tsp = optDatasetConstrs(optmodel_tsp, x_tsp, c_tsp)
+            dataloader_tsp = DataLoader(dataset_tsp, batch_size=1, collate_fn=collate_fn, shuffle=True)
 
             cave = exactConeAlignedCosine(optmodel=optmodel, solver="clarabel")
-            cave_tsp = exactConeAlignedCosine(optmodel, solver="clarabel", processes=1)
+            cave_tsp = exactConeAlignedCosine(optmodel=optmodel_tsp, solver="clarabel")
 
             cave_values = []
             cave_gradients = []
@@ -103,15 +97,14 @@ for d_ind, deg in enumerate(degrees):
             cave_tsp_gradients = []
 
             for data in dataloader:
-                x, c, w, z = data
+                x, c, w, z, bctr = data
                 x = torch.reshape(x, (2, num_items))
 
                 for alpha in alpha_values:
                     predmodel = ValueModel(alpha=alpha)
                     cp = predmodel.forward(x)
 
-                    weights_cave = torch.unsqueeze(torch.tensor(weights), dim=0)
-                    cave_loss = cave(cp, weights_cave)
+                    cave_loss = cave(cp, bctr)
                     cave_loss.backward(retain_graph=True)
                     cave_values.append(cave_loss.item())
                     cave_gradients.append(predmodel.alpha.grad.item())
@@ -124,8 +117,7 @@ for d_ind, deg in enumerate(degrees):
                     predmodel = ValueModel(alpha=alpha)
                     cp = predmodel.forward(x)
 
-                    bctr_cave = torch.unsqueeze(torch.tensor(bctr), dim=0)
-                    cave_loss = cave_tsp(cp, bctr_cave)
+                    cave_loss = cave_tsp(cp, bctr)
                     cave_loss.backward(retain_graph=True)
                     cave_tsp_values.append(cave_loss.item())
                     cave_tsp_gradients.append(predmodel.alpha.grad.item())
@@ -142,25 +134,38 @@ for d_ind, deg in enumerate(degrees):
             fit = np.polynomial.polynomial.Polynomial.fit(alpha_values, safe_tsp_gradients, deg)
             cubic_tsp_fits.append(fit)
 
-        #create plots
+        # #create plots
         for i in range(experiment_size):
-            plt.plot(alpha_values, cave_gradients_total[i])
+            plt.plot(alpha_values, cave_gradients_total[i], label='CaVE')
             xx, yy = cubic_fits[i].linspace()
-            plt.plot(xx, yy)
+            plt.plot(xx, yy, label='fit')
             # plt.plot(alpha_values, cave_values_total[i])
-            plt.savefig(f'cave_fit_{i}_1')
+            plt.savefig(f'cave_fit_{i}')
             plt.clf()
 
         for i in range(experiment_size):
-            plt.plot(alpha_values, cave_tsp_gradients_total[i])
+            plt.plot(alpha_values, cave_tsp_gradients_total[i], label='CaVE')
             xx, yy = cubic_tsp_fits[i].linspace()
-            plt.plot(xx, yy)
+            plt.plot(xx, yy, label='fit')
             # plt.plot(alpha_values, cave_values_total[i])
-            plt.savefig(f'cave_tsp_fit_{i}_1')
+            plt.savefig(f'cave_tsp_fit_{i}')
             plt.clf()
 
 
         #calc relative l_inf norms
+        # for i in range(experiment_size):
+        #     fit = cubic_fits[i]
+        #     grads = cave_gradients_total[i]
+        #     errors = []
+        #     max_dist = np.max(grads) - np.min(grads)
+        #     for idx, a_val in enumerate(alpha_values):
+        #         errors.append(np.abs(grads[idx] - fit(a_val)))
+        #     l_infs.append(np.max(errors))
+        #     l_infs_relative.append(np.max(errors)/max_dist * 100)
+        #     MSE_vals.append(np.mean(np.power(errors, 2)))
+
+        # res[d_ind,r_ind] = np.mean(l_infs)
+
         # for i in range(experiment_size):
         #     fit = cubic_fits[i]
         #     grads = cave_gradients_total[i]

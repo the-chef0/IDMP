@@ -12,17 +12,17 @@ from dp.dynamic import DP_Knapsack
 from predmodel import ValueModel
 
 from CaVEmain.src.cave import exactConeAlignedCosine
-
+from CaVEmain.src.dataset import optDatasetConstrs, collate_fn
 torch.manual_seed(100)
 
-num_items = 100
-capacity = 60
+num_items = 50
+capacity = 30
 
-weights, features, values = generate_data(num_items=num_items, capacity=capacity, seed=30)
+weights, features, values = generate_data(num_items=num_items, capacity=capacity, seed=37)
 
 optmodel = knapsackModel(weights=weights, capacity=capacity)
-dataset = dataset.optDataset(model=optmodel, feats=features, costs=values)
-dataloader = DataLoader(dataset, batch_size=1, shuffle=True)
+dataset = optDatasetConstrs(model=optmodel, feats=features, costs=values)
+dataloader = DataLoader(dataset, batch_size=1, collate_fn=collate_fn, shuffle=True)
 
 spop = SPOPlus(optmodel=optmodel)
 pfy = perturbedFenchelYoung(optmodel=optmodel)
@@ -43,10 +43,12 @@ spop_gradients = []
 pfy_values = []
 pfy_gradients = []
 cave_values = []
+cave_values_ctr = []
 cave_gradients = []
+cave_gradients_ctr = []
 
 for data in dataloader:
-    x, c, w, z = data
+    x, c, w, z, bctr = data
     x = torch.reshape(x, (2, num_items))
 
     for alpha in alpha_values:
@@ -66,12 +68,16 @@ for data in dataloader:
         pfy_gradients.append(predmodel.alpha.grad.item())
 
         predmodel.zero_grad()
+        cave_loss_ctr = cave(cp, bctr)
+        cave_loss_ctr.backward(retain_graph=True)
+        cave_values_ctr.append(cave_loss_ctr.item() * 100)
+        cave_gradients_ctr.append(predmodel.alpha.grad.item() * 100)
 
-        w_cave = torch.unsqueeze(w, dim=0)
-        cave_loss = cave(cp, w_cave)
+        predmodel.zero_grad()
+        cave_loss = cave(cp, torch.unsqueeze(torch.tensor(weights), dim=0))
         cave_loss.backward(retain_graph=True)
-        cave_values.append(cave_loss.item())
-        cave_gradients.append(predmodel.alpha.grad.item())
+        cave_values.append(cave_loss.item() * 100)
+        cave_gradients.append(predmodel.alpha.grad.item() * 100)
 
 # Plot loss function gradients
 # Create base plot with DP solutions
@@ -81,12 +87,24 @@ plt.xlabel("Alpha")
 plt.ylabel("loss")
 # Plot SPO loss
 spop_loss_plot = plt.plot(alpha_values, spop_values, color="green", label='SPO+')
+cave_loss_plot = plt.plot(alpha_values, cave_values, color='magenta', label='CaVE')
+cave_loss_plot = plt.plot(alpha_values, cave_values_ctr, color='purple', label='CaVE_ctr')
+pfyl_loss_plot = plt.plot(alpha_values, pfy_values, color='blue', label='PFYL')
 for interval, loss in zip(intervals, loss_plots):
     plt.plot(interval, loss, '--', color='red',)
-plt.legend(['SPO+','SPO'])
-plt.savefig("spo_loss.png")
+plt.legend(['SPO+', 'CaVE', 'CaVE_ctr' 'pfyl', 'SPO'])
+plt.savefig("true_spo_loss.png")
 
 plt.clf()
+
+spop_loss_plot = plt.plot(alpha_values, spop_gradients, color="green", label='SPO+')
+cave_loss_plot = plt.plot(alpha_values, cave_gradients, color='magenta', label='CaVE')
+cave_loss_plot = plt.plot(alpha_values, cave_gradients_ctr, color='purple', label='CaVE_ctr')
+pfyl_loss_plot = plt.plot(alpha_values, pfy_gradients, color='blue', label='PFYL')
+for interval, loss in zip(intervals, horzizontal_plots):
+    plt.plot(interval, loss, '--', color='red',)
+plt.legend(['SPO+', 'CaVE', 'CaVE_ctr', 'pfyl', 'DP'])
+plt.savefig("gradients.png")
 # Remove SPO+ to create the next plot
 # spop_loss_plot[0].remove()
 # Plot SPO on top
