@@ -208,13 +208,11 @@ class DP_Knapsack:
 
             if i == 0 and cur_slope < abs(sum([self.c[0][idx] for idx in self.result.funcs[i+1].items])):
                 delta = abs(sum([self.c[0][idx] for idx in self.result.funcs[i+1].items])) - cur_slope
-                print(delta)
                 color = mcolors.to_rgba('blue', alpha=min(1, abs(delta)))
                 arrows.append(((interval[0], arrow_y), (interval[1], arrow_y), color))
 
             if i == len(self.result.intervals) - 1 and cur_slope < abs(sum([self.c[0][idx] for idx in self.result.funcs[i-1].items])):
                 delta = cur_slope - abs(sum([self.c[0][idx] for idx in self.result.funcs[i-1].items]))
-                print(delta)
                 color = mcolors.to_rgba('red', alpha=min(1, abs(delta)))
                 arrows.append(((interval[1], arrow_y), (interval[0], arrow_y), color))
         return arrows
