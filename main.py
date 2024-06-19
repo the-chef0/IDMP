@@ -18,6 +18,7 @@ torch.manual_seed(100)
 
 num_items = 100
 capacity = 60
+Runs = 200 # 1 for a single run or a higher number for multiple runs to average
 
 def run(seed=50, graph=True):
     weights, features, values = generate_data(num_items=num_items, capacity=capacity, seed=seed)
@@ -130,15 +131,13 @@ def run(seed=50, graph=True):
 
     return accuracy_spo, accuracy_pfyl, accuracy_cave
 
-Mode = 200 # 1 for a single run or a higher number for multiple runs to average
-
-if Mode == 1:
+if Runs == 1:
     acumulated_spo, acumulated_pfyl, acumulated_cave = run()
-elif Mode > 1:
+elif Runs > 1:
     acumulated_spo = 0
     acumulated_pfyl = 0
     acumulated_cave = 0
-    for i in range(Mode):
+    for i in range(Runs):
         accuracy_spo, accuracy_pfyl, accuracy_cave = run(seed=i, graph=False)
         acumulated_spo += accuracy_spo
         acumulated_pfyl += accuracy_pfyl
@@ -146,8 +145,8 @@ elif Mode > 1:
         print(acumulated_spo)
 
 
-print("The Accuracy for SPO+ is "+str((acumulated_spo/Mode)*100)+"%")
-print("The Accuracy for PFYL is "+str((acumulated_pfyl/Mode)*100)+"%")
-print("The Accuracy for CaVE is "+str((acumulated_cave/Mode)*100)+"%")
+print("The Accuracy for SPO+ is "+str((acumulated_spo/Runs)*100)+"%")
+print("The Accuracy for PFYL is "+str((acumulated_pfyl/Runs)*100)+"%")
+print("The Accuracy for CaVE is "+str((acumulated_cave/Runs)*100)+"%")
 
 
