@@ -105,10 +105,16 @@ def run(seed=50, graph=True):
             else:
                 continue
 
+        # Regret calculation
+        # Ensure that we don't exceed bounds when looking ahead by one
         if i + 1 < len(alpha_values):
+            # Check whether we cross zero around the current alpha
+            # The gradient can cross zero by either decreasing or increasing
             if (spop_gradients[i] >= 0 and spop_gradients[i+1] <= 0) \
             or (spop_gradients[i] <= 0 and spop_gradients[i+1] >= 0):
 
+                # Find the interval that corresponds to the current alpha
+                # I feel like there is a more efficient way to do this, implement if know
                 for interval_idx, interval in enumerate(intervals):
                     interval_lower = interval[0]
                     interval_upper = interval[1]
