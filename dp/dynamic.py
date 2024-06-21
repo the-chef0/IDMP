@@ -5,9 +5,10 @@ import matplotlib.colors as mcolors
 from matplotlib import pyplot as plt
 from matplotlib import colormaps
 import torch
+import math
 
 
-# generate data for 2D knapsack
+# # generate data for 2D knapsack
 # m = 100  # number of items
 # n = 1  # number of data????????????????????????????
 # p = 2 * m  # size of feature
@@ -185,36 +186,47 @@ class DP_Knapsack:
 
     def calculate_arrows(self):
         arrows = []
-        all_vals = [sum([self.c[0][idx] for idx in self.result.funcs[i].items]) for i in range(len(self.result.funcs))]
+        all_vals = [
+            sum([self.c[0][idx] for idx in self.result.funcs[i].items])
+            for i in range(len(self.result.funcs))
+        ]
         norm = np.max(all_vals) - np.min(all_vals)
         arrow_y = min(func.intercept for func in self.result.funcs) - 1
-        for i, (interval, function) in enumerate(zip(self.result.intervals, self.result.funcs)):
+        for i, (interval, function) in enumerate(
+            zip(self.result.intervals, self.result.funcs)
+        ):
             cur_slope = abs(sum([self.c[0][idx] for idx in function.items]))
             if 0 < i < len(self.result.intervals) - 1:
-                next_slope = abs(sum([self.c[0][idx] for idx in self.result.funcs[i + 1].items]))
-                prev_slope = abs(sum([self.c[0][idx] for idx in self.result.funcs[i-1].items]))
-                
+                next_slope = abs(
+                    sum([self.c[0][idx] for idx in self.result.funcs[i + 1].items])
+                )
+                prev_slope = abs(
+                    sum([self.c[0][idx] for idx in self.result.funcs[i - 1].items])
+                )
+
                 if cur_slope < prev_slope or cur_slope < next_slope:
                     if next_slope < prev_slope:
-                        delta = (cur_slope - prev_slope)/(norm*0.33)
-                        #print(delta)
-                        color = mcolors.to_rgba('red', alpha=min(1, abs(delta)))
-                        arrows.append(((interval[1], arrow_y), (interval[0], arrow_y), color))
+                        delta = (cur_slope - prev_slope) / (norm * 0.33)
+                        # print(delta)
+                        color = mcolors.to_rgba("red", alpha=min(1, abs(delta)))
+                        arrows.append(
+                            ((interval[1], arrow_y), (interval[0], arrow_y), color)
+                        )
                     else:
-                        delta = (cur_slope - next_slope)/(norm*0.33)
-                        #print(delta)
-                        color = mcolors.to_rgba('blue', alpha=min(1, abs(delta)))
-                        arrows.append(((interval[0], arrow_y), (interval[1], arrow_y), color))
+                        delta = (cur_slope - next_slope) / (norm * 0.33)
+                        # print(delta)
+                        color = mcolors.to_rgba("blue", alpha=min(1, abs(delta)))
+                        arrows.append(
+                            ((interval[0], arrow_y), (interval[1], arrow_y), color)
+                        )
 
             if i == 0 and cur_slope < abs(sum([self.c[0][idx] for idx in self.result.funcs[i+1].items])):
                 delta = abs(sum([self.c[0][idx] for idx in self.result.funcs[i+1].items])) - cur_slope
-                print(delta)
                 color = mcolors.to_rgba('blue', alpha=min(1, abs(delta)))
                 arrows.append(((interval[0], arrow_y), (interval[1], arrow_y), color))
 
             if i == len(self.result.intervals) - 1 and cur_slope < abs(sum([self.c[0][idx] for idx in self.result.funcs[i-1].items])):
                 delta = cur_slope - abs(sum([self.c[0][idx] for idx in self.result.funcs[i-1].items]))
-                print(delta)
                 color = mcolors.to_rgba('red', alpha=min(1, abs(delta)))
                 arrows.append(((interval[1], arrow_y), (interval[0], arrow_y), color))
         return arrows
@@ -244,10 +256,81 @@ class DP_Knapsack:
                 )
                 
         arrows = self.calculate_arrows()
-        for (start, end, color) in arrows:
-            plt.annotate('', xy=end, xytext=start, arrowprops=dict(arrowstyle='->', color=color))
+        for start, end, color in arrows:
+            plt.annotate(
+                "", xy=end, xytext=start, arrowprops=dict(arrowstyle="->", color=color)
+            )
 
         return linear_plots, horizontal_plots, loss_plots, intervals
+
+    def plot_heatmap(self):
+        # plt.rcParams["figure.figsize"] = 5, 2
+        tickrate = 0.1
+        tickrate_constant = int(math.log(tickrate) / math.log(0.1))
+        binsize = int((self.right_bound - self.left_bound) // tickrate)
+        x = np.linspace(self.left_bound, self.right_bound, num=binsize)
+        print(len(x))
+        data = np.empty(binsize)
+        arrows = self.calculate_directions()
+        for start, end, delta in arrows:
+            if not (type(start) is int):
+                start = start.item()
+            if not (type(end) is int):
+                end = end.item()
+
+            start = int(
+                (round(start, tickrate_constant) // tickrate)
+                + math.fabs(self.left_bound // tickrate)
+            )
+            end = int(
+                (round(end, tickrate_constant) // tickrate)
+                + math.fabs(self.left_bound // tickrate)
+            )
+            print("fill in: ", start, end, delta)
+            data[start:end] = delta
+        # plt.pcolormesh([data] * 2, cmap="plasma", shading="gouraud")
+
+        fig, (ax, ax2, ax3) = plt.subplots(nrows=3, sharex=True)
+
+        extent = [self.left_bound, self.right_bound, 0, 1]
+        ax.imshow(
+            data[np.newaxis, :],
+            cmap="seismic",
+            aspect="auto",
+            extent=extent,
+            vmin=-1,
+            vmax=1,
+        )
+        ax.set_yticks([])
+        ax.set_xlim(extent[0], extent[1])
+
+        data_averaged = np.empty(binsize)
+        blurr_size = 15
+        for i in range(len(data)):
+            low_neighbor = max(min(len(data), i - blurr_size), 0)
+            high_neighbor = max(min(len(data), i + blurr_size), 0)
+            averaged = np.average([data[low_neighbor:high_neighbor]])
+            data_averaged[i] = averaged
+        ax2.imshow(
+            data_averaged[np.newaxis, :],
+            cmap="seismic",
+            aspect="auto",
+            extent=extent,
+            vmin=-1,
+            vmax=1,
+        )
+        ax2.set_yticks([])
+        ax2.set_xlim(extent[0], extent[1])
+
+        # ax3.plot(x, data)
+
+        plt.tight_layout()
+        # self.plot(linear=False)
+        arrows = self.calculate_arrows()
+        for start, end, color in arrows:
+            plt.annotate(
+                "", xy=end, xytext=start, arrowprops=dict(arrowstyle="->", color=color)
+            )
 
     def solve(self):
         n = self.x.shape[1]
@@ -275,7 +358,10 @@ class DP_Knapsack:
 
 # dp_problem = DP_Knapsack(weights[0], x, c, 30, -6, 6)
 # dp_problem.solve()
-# print(dp_problem.result)
+# # print(dp_problem.result)
+
+# dp_problem.plot_heatmap()
+
 # dp_problem.plot()
 # plt.show()
 # print(dp_problem.get_result().intervals)
