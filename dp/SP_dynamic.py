@@ -46,6 +46,15 @@ class SP_dynamic:
         )
         self.result = space()
 
+    def get_result(self):
+        return self.result
+
+    def get_y_values(self):
+        return [
+            sum([self.true_cost[0][idx] for idx in function.items])
+            for function in self.result.funcs
+        ]
+
     def _getArcs(self):
         arcs = []
         for i in range(self.grid[0]):
