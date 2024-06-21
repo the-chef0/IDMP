@@ -60,7 +60,7 @@ for i in range(num_runs):
 
     # # Plot loss function gradients
     # # Create base plot with DP solutions
-    _, horizontal_plots = dp_model.plot(linear=False, horizontal=True)
+    _, horizontal_plots, _, intervals = dp_model.plot(linear=False, horizontal=True)
     # plt.grid(True)
     # plt.xlabel("Alpha")
     # plt.ylabel("Gradient")
@@ -83,11 +83,11 @@ for i in range(num_runs):
     max_dp_value = 0
     max_dp_range = []
     dp_alpha = None
-    for hor_plot in horizontal_plots:
-        cur_dp = hor_plot.get_ydata()[0]
+    for hor_plot, interval in zip(horizontal_plots, intervals):
+        cur_dp = hor_plot[0]
         if cur_dp > max_dp_value:
             max_dp_value = cur_dp
-            max_dp_range = hor_plot.get_xdata()
+            max_dp_range = interval
             dp_alpha = (max_dp_range[0] + max_dp_range[-1]) / 2
 
     epsilon = 0.2
