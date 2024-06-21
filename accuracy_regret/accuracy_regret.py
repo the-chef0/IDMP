@@ -18,11 +18,15 @@ from predmodel import ValueModel
 from CaVEmain.src.cave import exactConeAlignedCosine
 from CaVEmain.src.dataset import optDatasetConstrs
 
+import pickle
+import os
+
 torch.manual_seed(100)
 
 num_items = 100
 capacity = 60
-runs = 20 # 1 for a single run or a higher number for multiple runs to average
+runs = 3 # 1 for a single run or a higher number for multiple runs to average
+store_data = True
 
 def run(seed=50, graph=True):
     weights, features, values = generate_data(num_items=num_items, capacity=capacity, seed=seed)
@@ -36,7 +40,7 @@ def run(seed=50, graph=True):
     pfy = perturbedFenchelYoung(optmodel=optmodel)
     cave = exactConeAlignedCosine(optmodel=optmodel, solver="clarabel")
 
-    alpha_values = np.arange(-7, 7, 0.05)
+    alpha_values = np.arange(-8, 8, 0.05)
 
     # Estimate gradients with dynamic programming
     features = features.reshape((2, num_items))
@@ -170,6 +174,24 @@ def run(seed=50, graph=True):
     regret_pfy = pfy_min_regret/z
     regret_cave = cave_min_regret/z
 
+    if store_data:
+        data_dict = {
+            "seed": seed,
+            "arrows": arrows,
+            "spop_regret": spop_values,
+            "spop_gradients": spop_gradients,
+            "pfy_regret": pfy_values,
+            "pfy_gradients": pfy_gradients,
+            "cave_regret": cave_values,
+            "cave_gradients": cave_gradients
+        }
+
+        if not os.path.exists("./results/data"):
+            os.makedirs("./results/data")
+
+        with open(f"./results/data/knapsack_{seed}_data.pickle", 'wb') as handle:
+            pickle.dump(data_dict, handle)
+
     if graph:
         # Plot loss function gradients
         # Create base plot with DP solutions
@@ -214,7 +236,7 @@ elif runs > 1:
         acumulated_regret_spo += regret_spo
         acumulated_regret_pfy += regret_pfy
         acumulated_regret_cave += regret_cave
-        print(acumulated_spo)
+        print("Finished iteration "+str(i))
 
 
 print("The Accuracy for SPO+ is "+str((acumulated_spo/runs)*100)+"%")
