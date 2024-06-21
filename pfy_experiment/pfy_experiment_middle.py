@@ -11,19 +11,20 @@ from data_generator import generate_data
 from dp.dynamic import DP_Knapsack
 from predmodel import ValueModel
 
-num_runs = 1000
+middle_data = np.load("../labled_data/middle_labled_data.npy", allow_pickle=True)
+num_runs = len(middle_data)
 tf_runs = []
 pfyl_alphas = []
 dp_alphas = []
-alpha_values = np.arange(-7, 7, 0.05)
-num_items = 10
-capacity = 20
+alpha_values = np.arange(middle_data[0]['alpha'][0], middle_data[0]['alpha'][1], 0.05)
+num_items = middle_data[0]['num_items']
+capacity = middle_data[0]['capacity']
 for i in range(num_runs):
     if i % 10 == 0:
         print(f"Running iteration: {i}")
-    torch.manual_seed(i)
+    torch.manual_seed(middle_data[i]['seed'])
 
-    weights, features, values = generate_data(num_items=num_items, capacity=capacity)
+    weights, features, values = generate_data(num_items=num_items, capacity=capacity, seed=middle_data[i]['seed'])
 
     optmodel = knapsackModel(weights=weights, capacity=capacity)
     data = dataset.optDataset(model=optmodel, feats=features, costs=values)
@@ -60,25 +61,25 @@ for i in range(num_runs):
     # Plot loss function gradients
     # Create base plot with DP solutions
     _, horizontal_plots = dp_model.plot(linear=False, horizontal=True)
-    plt.grid(True)
-    plt.xlabel("Alpha")
-    plt.ylabel("Gradient")
+    # plt.grid(True)
+    # plt.xlabel("Alpha")
+    # plt.ylabel("Gradient")
 
     # Plot PFYL on top
     pfyl_grad_plot = plt.plot(alpha_values, pfyl_gradients, color="green")
-    plt.title("PFYL loss gradient vs. alpha")
-    plt.legend(
-        [horizontal_plots, pfyl_grad_plot[0]],
-        ["DP", "PFYL"],
-        handler_map={tuple: HandlerTuple(ndivide=None)},
-    )
+    # plt.title("PFYL loss gradient vs. alpha")
+    # plt.legend(
+    #     [horizontal_plots, pfyl_grad_plot[0]],
+    #     ["DP", "PFYL"],
+    #     handler_map={tuple: HandlerTuple(ndivide=None)},
+    # )
 
-    pfyl_alphas = []
+    cur_pfyl_alphas = []
     for j in range(len(alpha_values) - 1):
         if pfyl_grad_plot[0].get_ydata()[j] <= 0 <= pfyl_grad_plot[0].get_ydata()[j + 1]:
-            pfyl_alphas.append((pfyl_grad_plot[0].get_xdata()[j] + pfyl_grad_plot[0].get_xdata()[j + 1]) / 2)
+            cur_pfyl_alphas.append((pfyl_grad_plot[0].get_xdata()[j] + pfyl_grad_plot[0].get_xdata()[j + 1]) / 2)
 
-    pfyl_alpha = np.mean(pfyl_alphas)
+    pfyl_alpha = np.mean(cur_pfyl_alphas)
 
     max_dp_value = 0
     max_dp_range = []
@@ -96,11 +97,11 @@ for i in range(num_runs):
         pfyl_alphas.append(pfyl_alpha)
         dp_alphas.append(dp_alpha)
 
-        plt.title("PFYL loss gradient vs. alpha")
-        plt.savefig("pfy_experiment.png")
-        # [hor_plot.remove() for hor_plot in horizontal_plots]
-        # pfyl_grad_plot[0].remove()
-        plt.clf()
+        # plt.title("PFYL loss gradient vs. alpha")
+        # plt.savefig("pfy_experiment.png")
+        # # [hor_plot.remove() for hor_plot in horizontal_plots]
+        # # pfyl_grad_plot[0].remove()
+        # plt.clf()
 
 
 def get_histogram_data(alphas, tf_runs, bins):
@@ -116,7 +117,7 @@ def get_histogram_data(alphas, tf_runs, bins):
 
 
 width = 0.3
-bins = np.arange(-7, 7.5, width)
+bins = np.arange(middle_data[0]['alpha'][0], middle_data[0]['alpha'][1], width)
 true_counts_pfyl, false_counts_pfyl = get_histogram_data(pfyl_alphas, np.array(tf_runs), bins)
 true_counts_dp, false_counts_dp = get_histogram_data(dp_alphas, np.array(tf_runs), bins)
 
@@ -137,4 +138,4 @@ ax[1].set_xlabel('Alpha')
 ax[1].set_ylabel('Count')
 ax[1].legend()
 
-plt.savefig('pfy_experiments.png')
+plt.savefig('pfy_experiments_middle.png')

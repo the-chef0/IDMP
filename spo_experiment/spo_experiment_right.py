@@ -11,19 +11,20 @@ from data_generator import generate_data
 from dp.dynamic import DP_Knapsack
 from predmodel import ValueModel
 
-num_runs = 1000
+right_data = np.load("../labled_data/right_labled_data.npy", allow_pickle=True)
+num_runs = len(right_data)
 tf_runs = []
 spop_alphas = []
 dp_alphas = []
-alpha_values = np.arange(-7, 7, 0.05)
-num_items = 10
-capacity = 20
-for i in range(num_runs):
+alpha_values = np.arange(right_data[0]['alpha'][0], right_data[0]['alpha'][1], 0.05)
+num_items = right_data[0]['num_items']
+capacity = right_data[0]['capacity']
+for i in range(len(right_data)):
     if i % 10 == 0:
         print(f"Running iteration: {i}")
-    torch.manual_seed(i)
+    torch.manual_seed(right_data[i]['seed'])
 
-    weights, features, values = generate_data(num_items=num_items, capacity=capacity)
+    weights, features, values = generate_data(num_items=num_items, capacity=capacity, seed=right_data[i]['seed'])
 
     optmodel = knapsackModel(weights=weights, capacity=capacity)
     data = dataset.optDataset(model=optmodel, feats=features, costs=values)
@@ -57,21 +58,21 @@ for i in range(num_runs):
 
             predmodel.zero_grad()
 
-    # Plot loss function gradients
-    # Create base plot with DP solutions
+    # # Plot loss function gradients
+    # # Create base plot with DP solutions
     _, horizontal_plots = dp_model.plot(linear=False, horizontal=True)
-    plt.grid(True)
-    plt.xlabel("Alpha")
-    plt.ylabel("Gradient")
+    # plt.grid(True)
+    # plt.xlabel("Alpha")
+    # plt.ylabel("Gradient")
 
     # Plot SPO on top
     spop_grad_plot = plt.plot(alpha_values, spop_gradients, color="green")
-    plt.title("SPO+ loss gradient vs. alpha")
-    plt.legend(
-        [horizontal_plots, spop_grad_plot[0]],
-        ["DP", "SPO+"],
-        handler_map={tuple: HandlerTuple(ndivide=None)},
-    )
+    # plt.title("SPO+ loss gradient vs. alpha")
+    # plt.legend(
+    #     [horizontal_plots, spop_grad_plot[0]],
+    #     ["DP", "SPO+"],
+    #     handler_map={tuple: HandlerTuple(ndivide=None)},
+    # )
 
     spop_alpha = None
     for j in range(len(alpha_values) - 1):
@@ -95,11 +96,11 @@ for i in range(num_runs):
         spop_alphas.append(spop_alpha)
         dp_alphas.append(dp_alpha)
 
-        plt.title("SPO+ loss gradient vs. alpha")
-        plt.savefig("spo_experiment.png")
-        # [hor_plot.remove() for hor_plot in horizontal_plots]
-        # spop_grad_plot[0].remove()
-        plt.clf()
+        # plt.title("SPO+ loss gradient vs. alpha")
+        # plt.savefig("spo_experiment.png")
+        # # [hor_plot.remove() for hor_plot in horizontal_plots]
+        # # spop_grad_plot[0].remove()
+        # plt.clf()
 
 
 def get_histogram_data(alphas, tf_runs, bins):
@@ -115,7 +116,7 @@ def get_histogram_data(alphas, tf_runs, bins):
 
 
 width = 0.3
-bins = np.arange(-7, 7.5, width)
+bins = np.arange(right_data[0]['alpha'][0], right_data[0]['alpha'][1], width)
 true_counts_spop, false_counts_spop = get_histogram_data(spop_alphas, np.array(tf_runs), bins)
 true_counts_dp, false_counts_dp = get_histogram_data(dp_alphas, np.array(tf_runs), bins)
 
@@ -136,4 +137,4 @@ ax[1].set_xlabel('Alpha')
 ax[1].set_ylabel('Count')
 ax[1].legend()
 
-plt.savefig('spo_experiments.png')
+plt.savefig('spo_experiments_right.png')

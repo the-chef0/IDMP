@@ -4,32 +4,33 @@ import numpy as np
 from matplotlib import pyplot as plt
 from matplotlib.legend_handler import HandlerTuple
 from pyepo.data import dataset
-from pyepo.func import perturbedFenchelYoung
+from pyepo.func import SPOPlus
 from pyepo.model.grb.knapsack import knapsackModel
 from torch.utils.data import DataLoader
 from data_generator import generate_data
 from dp.dynamic import DP_Knapsack
 from predmodel import ValueModel
 
-num_runs = 1000
+middle_data = np.load("../labled_data/middle_labled_data.npy", allow_pickle=True)
+num_runs = len(middle_data)
 tf_runs = []
-pfyl_alphas = []
+spop_alphas = []
 dp_alphas = []
-alpha_values = np.arange(-7, 7, 0.05)
-num_items = 10
-capacity = 20
-for i in range(num_runs):
+alpha_values = np.arange(middle_data[0]['alpha'][0], middle_data[0]['alpha'][1], 0.05)
+num_items = middle_data[0]['num_items']
+capacity = middle_data[0]['capacity']
+for i in range(len(middle_data)):
     if i % 10 == 0:
         print(f"Running iteration: {i}")
-    torch.manual_seed(i)
+    torch.manual_seed(middle_data[i]['seed'])
 
-    weights, features, values = generate_data(num_items=num_items, capacity=capacity)
+    weights, features, values = generate_data(num_items=num_items, capacity=capacity, seed=middle_data[i]['seed'])
 
     optmodel = knapsackModel(weights=weights, capacity=capacity)
     data = dataset.optDataset(model=optmodel, feats=features, costs=values)
     dataloader = DataLoader(data, batch_size=1, shuffle=True)
 
-    pfyl = perturbedFenchelYoung(optmodel=optmodel)
+    spop = SPOPlus(optmodel=optmodel)
 
     # Estimate gradients with dynamic programming
     features = features.reshape((2, num_items))
@@ -39,8 +40,8 @@ for i in range(num_runs):
     dp_model.solve()
 
     # Estimate gradients with loss functions
-    pfyl_values = []
-    pfyl_gradients = []
+    spop_values = []
+    spop_gradients = []
 
     for data in dataloader:
         x, c, w, z = data
@@ -50,35 +51,34 @@ for i in range(num_runs):
             predmodel = ValueModel(alpha=alpha)
             cp = predmodel.forward(x)
 
-            pfyl_loss = pfyl(cp, w)
-            pfyl_loss.backward(retain_graph=True)
-            pfyl_values.append(pfyl_loss.item())
-            pfyl_gradients.append(predmodel.alpha.grad.item())
+            spop_loss = spop(cp, c, w, z)
+            spop_loss.backward(retain_graph=True)
+            spop_values.append(spop_loss.item())
+            spop_gradients.append(predmodel.alpha.grad.item())
 
             predmodel.zero_grad()
 
-    # Plot loss function gradients
-    # Create base plot with DP solutions
+    # # Plot loss function gradients
+    # # Create base plot with DP solutions
     _, horizontal_plots = dp_model.plot(linear=False, horizontal=True)
-    plt.grid(True)
-    plt.xlabel("Alpha")
-    plt.ylabel("Gradient")
+    # plt.grid(True)
+    # plt.xlabel("Alpha")
+    # plt.ylabel("Gradient")
 
-    # Plot PFYL on top
-    pfyl_grad_plot = plt.plot(alpha_values, pfyl_gradients, color="green")
-    plt.title("PFYL loss gradient vs. alpha")
-    plt.legend(
-        [horizontal_plots, pfyl_grad_plot[0]],
-        ["DP", "PFYL"],
-        handler_map={tuple: HandlerTuple(ndivide=None)},
-    )
+    # Plot SPO on top
+    spop_grad_plot = plt.plot(alpha_values, spop_gradients, color="green")
+    # plt.title("SPO+ loss gradient vs. alpha")
+    # plt.legend(
+    #     [horizontal_plots, spop_grad_plot[0]],
+    #     ["DP", "SPO+"],
+    #     handler_map={tuple: HandlerTuple(ndivide=None)},
+    # )
 
-    pfyl_alphas = []
+    spop_alpha = None
     for j in range(len(alpha_values) - 1):
-        if pfyl_grad_plot[0].get_ydata()[j] <= 0 <= pfyl_grad_plot[0].get_ydata()[j + 1]:
-            pfyl_alphas.append((pfyl_grad_plot[0].get_xdata()[j] + pfyl_grad_plot[0].get_xdata()[j + 1]) / 2)
-
-    pfyl_alpha = np.mean(pfyl_alphas)
+        if spop_grad_plot[0].get_ydata()[j] <= 0 <= spop_grad_plot[0].get_ydata()[j + 1]:
+            spop_alpha = (spop_grad_plot[0].get_xdata()[j] + spop_grad_plot[0].get_xdata()[j + 1]) / 2
+            break
 
     max_dp_value = 0
     max_dp_range = []
@@ -91,16 +91,16 @@ for i in range(num_runs):
             dp_alpha = (max_dp_range[0] + max_dp_range[-1]) / 2
 
     epsilon = 0.2
-    if pfyl_alpha is not None and dp_alpha is not None:
-        tf_runs.append(max_dp_range[0] - epsilon < pfyl_alpha < max_dp_range[1] + epsilon)
-        pfyl_alphas.append(pfyl_alpha)
+    if spop_alpha is not None and dp_alpha is not None:
+        tf_runs.append(max_dp_range[0] - epsilon < spop_alpha < max_dp_range[1] + epsilon)
+        spop_alphas.append(spop_alpha)
         dp_alphas.append(dp_alpha)
 
-        plt.title("PFYL loss gradient vs. alpha")
-        plt.savefig("pfy_experiment.png")
-        # [hor_plot.remove() for hor_plot in horizontal_plots]
-        # pfyl_grad_plot[0].remove()
-        plt.clf()
+        # plt.title("SPO+ loss gradient vs. alpha")
+        # plt.savefig("spo_experiment.png")
+        # # [hor_plot.remove() for hor_plot in horizontal_plots]
+        # # spop_grad_plot[0].remove()
+        # plt.clf()
 
 
 def get_histogram_data(alphas, tf_runs, bins):
@@ -116,16 +116,16 @@ def get_histogram_data(alphas, tf_runs, bins):
 
 
 width = 0.3
-bins = np.arange(-7, 7.5, width)
-true_counts_pfyl, false_counts_pfyl = get_histogram_data(pfyl_alphas, np.array(tf_runs), bins)
+bins = np.arange(middle_data[0]['alpha'][0], middle_data[0]['alpha'][1], width)
+true_counts_spop, false_counts_spop = get_histogram_data(spop_alphas, np.array(tf_runs), bins)
 true_counts_dp, false_counts_dp = get_histogram_data(dp_alphas, np.array(tf_runs), bins)
 
 fig, ax = plt.subplots(2, 1, figsize=(14, 10), sharex=True)
 
-# Plot for pfyl_alphas
-ax[0].bar(bins[:-1], true_counts_pfyl, width=width, align='edge', label='True')
-ax[0].bar(bins[:-1], false_counts_pfyl, width=width, align='edge', bottom=true_counts_pfyl, label='False')
-ax[0].set_title('pfyl_alphas')
+# Plot for spop_alphas
+ax[0].bar(bins[:-1], true_counts_spop, width=width, align='edge', label='True')
+ax[0].bar(bins[:-1], false_counts_spop, width=width, align='edge', bottom=true_counts_spop, label='False')
+ax[0].set_title('spop_alphas')
 ax[0].set_ylabel('Count')
 ax[0].legend()
 
@@ -137,4 +137,4 @@ ax[1].set_xlabel('Alpha')
 ax[1].set_ylabel('Count')
 ax[1].legend()
 
-plt.savefig('pfy_experiments.png')
+plt.savefig('spo_experiments_middle.png')
