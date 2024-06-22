@@ -185,6 +185,49 @@ class SP_dynamic:
             items.append(item)
             res_func.append(func(a, b, items))
         return space(inter_list, res_func)
+    
+    def calculate_arrows(self):
+        arrows = []
+        all_vals = [
+            sum([self.true_cost[0][idx] for idx in self.result.funcs[i].items]).item()
+            for i in range(len(self.result.funcs))
+        ]
+        norm = np.max(all_vals) - np.min(all_vals)
+        arrow_y = min(func.intercept for func in self.result.funcs) - 1
+        for i, (interval, function) in enumerate(
+            zip(self.result.intervals, self.result.funcs)
+        ):
+            cur_slope = all_vals[i]
+            if 0 < i < len(self.result.intervals) - 1:
+                next_slope = all_vals[i-1]
+                prev_slope = all_vals[i+1]
+
+                if cur_slope > prev_slope or cur_slope > next_slope:
+                    if next_slope > prev_slope:
+                        delta = (cur_slope - prev_slope) / (norm * 0.33)
+                        # print(delta)
+                        color = mcolors.to_rgba("blue", alpha=min(1, abs(delta)))
+                        arrows.append(
+                            ((interval[0], arrow_y), (interval[1], arrow_y), color)
+                        )
+                    else:
+                        delta = (cur_slope - next_slope) / (norm * 0.33)
+                        # print(delta)
+                        color = mcolors.to_rgba("red", alpha=min(1, abs(delta)))
+                        arrows.append(
+                            ((interval[1], arrow_y), (interval[0], arrow_y), color)
+                        )
+
+            if i == 0 and cur_slope > all_vals[i+1]:
+                delta = all_vals[i+1] - cur_slope
+                color = mcolors.to_rgba('blue', alpha=min(1, abs(delta)))
+                arrows.append(((interval[0], arrow_y), (interval[1], arrow_y), color))
+
+            if i == len(self.result.intervals) - 1 and cur_slope > all_vals[i-1]:
+                delta = cur_slope - all_vals[i-1]
+                color = mcolors.to_rgba('red', alpha=min(1, abs(delta)))
+                arrows.append(((interval[1], arrow_y), (interval[0], arrow_y), color))
+        return arrows
 
     def plot(self, linear=True, horizontal=True, loss=False, z=None):
         linear_plots = []
@@ -210,9 +253,9 @@ class SP_dynamic:
                     [z - sum([self.true_cost[0][idx] for idx in function.items])] * 2,
                 )
 
-        # arrows = self.calculate_arrows()
-        # for (start, end, color) in arrows:
-        #     plt.annotate('', xy=end, xytext=start, arrowprops=dict(arrowstyle='->', color=color))
+        arrows = self.calculate_arrows()
+        for (start, end, color) in arrows:
+            plt.annotate('', xy=end, xytext=start, arrowprops=dict(arrowstyle='->', color=color))
 
         return linear_plots, horizontal_plots, loss_plots, intervals
 
@@ -258,7 +301,7 @@ class SP_dynamic:
         return dp[dp.shape[0] - 1][dp.shape[1] - 1]
 
 
-# Test generation code
+# #Test generation code
 # num_data = 1  # number of data
 # grid = (5, 5)  # grid size
 # num_feat = 2 * ((grid[0] - 1) * grid[1] + (grid[1] - 1) * grid[0])  # size of feature
