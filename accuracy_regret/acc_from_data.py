@@ -243,7 +243,7 @@ x2_values = array2[:, :, 0].tolist()
 y2_values = array2[:, :, 1].tolist()
 
 # Plotting the bar plot
-plt.figure(figsize=(14, 7))
+plt.figure(figsize=(6.5, 4))
 
 # Plotting array
 x1 = [item for sublist in x1_values for item in sublist]
@@ -275,7 +275,7 @@ x2_values = array2[:, :, 0].tolist()
 y2_values = array2[:, :, 1].tolist()
 
 # Plotting the bar plot
-plt.figure(figsize=(14, 7))
+plt.figure(figsize=(6.5, 4))
 
 # Plotting array
 x1 = [item for sublist in x1_values for item in sublist]
@@ -307,7 +307,7 @@ x2_values = array2[:, :, 0].tolist()
 y2_values = array2[:, :, 1].tolist()
 
 # Plotting the bar plot
-plt.figure(figsize=(14, 7))
+plt.figure(figsize=(6.5, 4))
 
 # Plotting array
 x1 = [item for sublist in x1_values for item in sublist]
