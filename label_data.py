@@ -17,7 +17,7 @@ experiment_size = 2000
 num_data = 1  # number of data
 grid = (5, 5)  # grid size
 num_feat = 2 * ((grid[0] - 1) * grid[1] + (grid[1] - 1) * grid[0])  # size of feature
-alpha_range = [-30, 30]
+alpha_range = [-15, 15]
 alpha_values = np.arange(alpha_range[0], alpha_range[1], 0.05)
 
 left_count = 0
@@ -48,7 +48,7 @@ for exp in range(experiment_size):
     dataloader = DataLoader(data, batch_size=1, shuffle=True)
 
     x = x.reshape((2, -1))
-    sp_dynamic = SP_dynamic(x, c, grid, -5, 5)
+    sp_dynamic = SP_dynamic(x, c, grid, alpha_range[0], alpha_range[1])
     sp_dynamic.solve()
 
     # label solve:

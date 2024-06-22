@@ -4,46 +4,48 @@ import os
 import sys
 
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
+
 from matplotlib import pyplot as plt
 from matplotlib.legend_handler import HandlerTuple
 from pyepo.data import dataset
-from pyepo.func import SPOPlus
-from pyepo.model.grb.knapsack import knapsackModel
 from torch.utils.data import DataLoader
-from data_generator import generate_data
+from dp.SP_dynamic import SP_dynamic
 from dp.dynamic import DP_Knapsack
 from predmodel import ValueModel
+from pyepo.model.grb.shortestpath import shortestPathModel
+import pyepo.data.shortestpath
+from pyepo.func import SPOPlus
 
-left_data = np.load("labled_data/left_labled_data.npy", allow_pickle=True)
-num_runs = len(left_data)
+left_data = np.load("labled_data/SP_left_labled_data.npy", allow_pickle=True)
+# num_runs = len(left_data)
 num_runs = 10
 tf_runs = []
 spop_alphas = []
 dp_alphas = []
 alpha_values = np.arange(left_data[0]["alpha"][0], left_data[0]["alpha"][1], 0.05)
-num_items = left_data[0]["num_items"]
-capacity = left_data[0]["capacity"]
+num_data = 1
+grid = left_data[0]["grid_size"]
+num_feat = 2 * ((grid[0] - 1) * grid[1] + (grid[1] - 1) * grid[0])
+lable = left_data[0]["label"]
 for i in range(num_runs):
     if i % 10 == 0:
         print(f"Running iteration: {i}")
-    torch.manual_seed(left_data[i]["seed"])
-
-    weights, features, values = generate_data(
-        num_items=num_items, capacity=capacity, seed=left_data[i]["seed"]
+    seed = left_data[i]["seed"]
+    torch.manual_seed(seed)
+    x, c = pyepo.data.shortestpath.genData(
+        num_data, num_feat, grid, deg=1, noise_width=0, seed=seed
     )
-
-    optmodel = knapsackModel(weights=weights, capacity=capacity)
-    data = dataset.optDataset(model=optmodel, feats=features, costs=values)
+    optmodel = shortestPathModel(grid=grid)
+    data = dataset.optDataset(model=optmodel, feats=x, costs=c)
     dataloader = DataLoader(data, batch_size=1, shuffle=True)
 
     spop = SPOPlus(optmodel=optmodel)
 
-    # Estimate gradients with dynamic programming
-    features = features.reshape((2, num_items))
-    dp_model = DP_Knapsack(
-        weights[0], features, values, capacity, alpha_values[0], alpha_values[-1]
+    x = x.reshape((2, -1))
+    sp_dynamic = SP_dynamic(
+        x, c, grid, left_data[0]["alpha"][0], left_data[0]["alpha"][1]
     )
-    dp_model.solve()
+    sp_dynamic.solve()
 
     # Estimate gradients with loss functions
     spop_values = []
@@ -51,7 +53,7 @@ for i in range(num_runs):
 
     for data in dataloader:
         x, c, w, z = data
-        x = torch.reshape(x, (2, num_items))
+        x = torch.reshape(x, (2, -1))
 
         for alpha in alpha_values:
             predmodel = ValueModel(alpha=alpha)
@@ -66,7 +68,7 @@ for i in range(num_runs):
 
     # # Plot loss function gradients
     # # Create base plot with DP solutions
-    _, horizontal_plots, _, intervals = dp_model.plot(linear=False, horizontal=True)
+    _, horizontal_plots, _, intervals = sp_dynamic.plot(linear=False, horizontal=True)
     # plt.grid(True)
     # plt.xlabel("Alpha")
     # plt.ylabel("Gradient")
@@ -92,24 +94,23 @@ for i in range(num_runs):
             ) / 2
             break
 
-    max_dp_value = 0
-    max_dp_range = []
+    min_dp_value = np.inf
+    min_dp_range = []
     dp_alpha = None
     for hor_plot, interval in zip(horizontal_plots, intervals):
         cur_dp = hor_plot[0]
-        if cur_dp > max_dp_value:
-            max_dp_value = cur_dp
-            max_dp_range = interval
-            dp_alpha = (max_dp_range[0] + max_dp_range[-1]) / 2
+        if cur_dp < min_dp_value:
+            min_dp_value = cur_dp
+            min_dp_range = interval
+            dp_alpha = (min_dp_range[0] + min_dp_range[-1]) / 2
 
     epsilon = 0.2
     if spop_alpha is not None and dp_alpha is not None:
         tf_runs.append(
-            max_dp_range[0] - epsilon < spop_alpha < max_dp_range[1] + epsilon
+            min_dp_range[0] - epsilon < spop_alpha < min_dp_range[1] + epsilon
         )
         spop_alphas.append(spop_alpha)
         dp_alphas.append(dp_alpha)
-
         # plt.title("SPO+ loss gradient vs. alpha")
         # plt.savefig("spo_experiment.png")
         # # [hor_plot.remove() for hor_plot in horizontal_plots]
@@ -167,4 +168,4 @@ ax[1].set_xlabel("Alpha")
 ax[1].set_ylabel("Count")
 ax[1].legend()
 
-plt.savefig("spo_experiments_left.png")
+plt.savefig("SP_spo_experiments_left.png")
