@@ -135,6 +135,25 @@ for pickle_file in pickle_files:
     accuracy_pfyl = accuracy_pfyl / total_points
     accuracy_cave = accuracy_cave / total_points
 
+    #if the gradient didn't cross, assume it keeps pushing towards most left or right segment
+    if(regret_spo == 1e9):
+        if(np.mean(spop_gradients) > 0):
+            regret_spo = (z-horzizontal_plots[0][0])/z
+        else:
+            regret_spo = (z-horzizontal_plots[-1][0])/z
+
+    if(pfy_min_regret == 1e9):
+        if(np.mean(pfy_gradients) > 0):
+            pfy_min_regret = (z-horzizontal_plots[0][0])
+        else:
+            pfy_min_regret = (z-horzizontal_plots[-1][0])
+
+    if(cave_min_regret == 1e9):
+        if(np.mean(cave_gradients) > 0):
+            cave_min_regret = (z-horzizontal_plots[0][0])
+        else:
+            cave_min_regret = (z-horzizontal_plots[-1][0])
+
     regret_pfy = pfy_min_regret/z
     regret_cave = cave_min_regret/z
 
@@ -149,4 +168,7 @@ runs = 1000
 print("The Accuracy for SPO+ is "+str((acumulated_spo/runs)*100)+"%")
 print("The Accuracy for PFYL is "+str((acumulated_pfyl/runs)*100)+"%")
 print("The Accuracy for CaVE is "+str((acumulated_cave/runs)*100)+"%")
+print("The regret for SPO+ is "+str((acumulated_regret_spo/runs)*100)+"%")
+print("The regret for PFYL is "+str((acumulated_regret_pfy/runs)*100)+"%")
+print("The regret for CaVE is "+str((acumulated_regret_cave/runs)*100)+"%")
 print("Processing complete.")
