@@ -11,12 +11,14 @@ all_files = os.listdir(directory)
 # Filter to include only .pickle files
 pickle_files = [f for f in all_files if f.endswith('.pickle')]
 
-
-regret_spo = 1e9
-pfy_min_regret = 1e9
-cave_min_regret = 1e9
-
 alpha_values = np.arange(-8, 8, 0.05)
+print(alpha_values[-1])
+start, end = -8, 7.95
+start_ind = np.argwhere(alpha_values >=start-1e-3)[0][0]
+end_ind = np.argwhere(alpha_values >= end-1e-3)[0][0]
+print(start_ind)
+print(end_ind)
+print(alpha_values[start_ind], alpha_values[end_ind])
 
 acumulated_spo = 0
 acumulated_pfyl = 0
@@ -49,14 +51,18 @@ for pickle_file in pickle_files:
     
     # Example calculation: print the seed value
     print(f"Iteration: {seed}")
-
     accuracy_spo = 0
     accuracy_pfyl = 0
     accuracy_cave = 0
     total_points = 0
 
+    regret_spo = 1e9
+    pfy_min_regret = 1e9
+    cave_min_regret = 1e9
+
     # Add your own calculations here
-    for i, a in enumerate(alpha_values):
+    for i in range(start_ind, end_ind+1):
+        a = alpha_values[i]
         for (start, end, color) in arrows:
 
             if min(start[0], end[0]) <= a < max(start[0], end[0]):
@@ -71,7 +77,7 @@ for pickle_file in pickle_files:
             else:
                 continue
 
-        # Regret calculation
+
         # Ensure that we don't exceed bounds when looking ahead by one
         if i + 1 < len(alpha_values):
             # Check whether we cross zero around the current alpha
@@ -139,4 +145,8 @@ for pickle_file in pickle_files:
     acumulated_regret_pfy += regret_pfy
     acumulated_regret_cave += regret_cave
 
+runs = 1000
+print("The Accuracy for SPO+ is "+str((acumulated_spo/runs)*100)+"%")
+print("The Accuracy for PFYL is "+str((acumulated_pfyl/runs)*100)+"%")
+print("The Accuracy for CaVE is "+str((acumulated_cave/runs)*100)+"%")
 print("Processing complete.")
