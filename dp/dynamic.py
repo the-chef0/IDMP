@@ -220,18 +220,27 @@ class DP_Knapsack:
                             ((interval[0], arrow_y), (interval[1], arrow_y), color)
                         )
 
-            if i == 0 and cur_slope < abs(sum([self.c[0][idx] for idx in self.result.funcs[i+1].items])):
-                delta = abs(sum([self.c[0][idx] for idx in self.result.funcs[i+1].items])) - cur_slope
-                color = mcolors.to_rgba('blue', alpha=min(1, abs(delta)))
+            if i == 0 and cur_slope < abs(
+                sum([self.c[0][idx] for idx in self.result.funcs[i + 1].items])
+            ):
+                delta = (
+                    abs(sum([self.c[0][idx] for idx in self.result.funcs[i + 1].items]))
+                    - cur_slope
+                )
+                color = mcolors.to_rgba("blue", alpha=min(1, abs(delta)))
                 arrows.append(((interval[0], arrow_y), (interval[1], arrow_y), color))
 
-            if i == len(self.result.intervals) - 1 and cur_slope < abs(sum([self.c[0][idx] for idx in self.result.funcs[i-1].items])):
-                delta = cur_slope - abs(sum([self.c[0][idx] for idx in self.result.funcs[i-1].items]))
-                color = mcolors.to_rgba('red', alpha=min(1, abs(delta)))
+            if i == len(self.result.intervals) - 1 and cur_slope < abs(
+                sum([self.c[0][idx] for idx in self.result.funcs[i - 1].items])
+            ):
+                delta = cur_slope - abs(
+                    sum([self.c[0][idx] for idx in self.result.funcs[i - 1].items])
+                )
+                color = mcolors.to_rgba("red", alpha=min(1, abs(delta)))
                 arrows.append(((interval[1], arrow_y), (interval[0], arrow_y), color))
         return arrows
 
-    def plot(self, linear=True, horizontal=True, loss=False, z = None):
+    def plot(self, linear=True, horizontal=True, loss=False, z=None):
         linear_plots = []
         horizontal_plots = []
         loss_plots = []
@@ -254,7 +263,7 @@ class DP_Knapsack:
                 loss_plots.append(
                     [z - sum([self.c[0][idx] for idx in function.items])] * 2,
                 )
-                
+
         arrows = self.calculate_arrows()
         for start, end, color in arrows:
             plt.annotate(
@@ -262,6 +271,53 @@ class DP_Knapsack:
             )
 
         return linear_plots, horizontal_plots, loss_plots, intervals
+
+    def calculate_directions(self):
+        arrows = []
+        all_vals = [
+            sum([self.c[0][idx] for idx in self.result.funcs[i].items])
+            for i in range(len(self.result.funcs))
+        ]
+        norm = np.max(all_vals) - np.min(all_vals)
+        for i, (interval, function) in enumerate(
+            zip(self.result.intervals, self.result.funcs)
+        ):
+            cur_slope = abs(sum([self.c[0][idx] for idx in function.items]))
+            if 0 < i < len(self.result.intervals) - 1:
+                next_slope = abs(
+                    sum([self.c[0][idx] for idx in self.result.funcs[i + 1].items])
+                )
+                prev_slope = abs(
+                    sum([self.c[0][idx] for idx in self.result.funcs[i - 1].items])
+                )
+
+                if cur_slope < prev_slope or cur_slope < next_slope:
+                    if next_slope < prev_slope:
+                        delta = (prev_slope - cur_slope) / (norm * 0.33)
+                        arrows.append((interval[0], interval[1], delta))
+                    else:
+                        delta = (cur_slope - next_slope) / (norm * 0.33)
+                        arrows.append((interval[0], interval[1], delta))
+
+            if i == 0 and cur_slope < abs(
+                sum([self.c[0][idx] for idx in self.result.funcs[i + 1].items])
+            ):
+                delta = (
+                    sum([self.c[0][idx] for idx in self.result.funcs[i + 1].items])
+                    - cur_slope
+                ) / (norm * 0.33)
+                arrows.append((interval[0], interval[1], delta))
+
+            if i == len(self.result.intervals) - 1 and cur_slope < abs(
+                sum([self.c[0][idx] for idx in self.result.funcs[i - 1].items])
+            ):
+                delta = (
+                    cur_slope
+                    - sum([self.c[0][idx] for idx in self.result.funcs[i - 1].items])
+                ) / (norm * 0.33)
+
+                arrows.append((interval[0], interval[1], delta))
+        return arrows
 
     def plot_heatmap(self):
         # plt.rcParams["figure.figsize"] = 5, 2
