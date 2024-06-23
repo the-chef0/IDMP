@@ -16,7 +16,7 @@ from pyepo.model.grb.shortestpath import shortestPathModel
 import pyepo.data.shortestpath
 from pyepo.func import SPOPlus
 
-left_data = np.load("labled_data/SP_left_labled_data.npy", allow_pickle=True)
+left_data = np.load("labled_data/SP_middle_labled_data.npy", allow_pickle=True)
 # num_runs = len(left_data)
 num_runs = 100
 tf_runs = []
@@ -168,4 +168,4 @@ ax[1].set_xlabel("Alpha")
 ax[1].set_ylabel("Count")
 ax[1].legend()
 
-plt.savefig("SP_spo_experiments_left.png")
+plt.savefig("SP_spo_experiments_middle.png")
