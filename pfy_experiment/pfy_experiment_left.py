@@ -17,8 +17,8 @@ from dp.dynamic import DP_Knapsack
 from predmodel import ValueModel
 
 left_data = np.load("labled_data/left_labled_data.npy", allow_pickle=True)
-# num_runs = len(left_data)
-num_runs = 10
+num_runs = len(left_data)
+#num_runs = 15
 tf_runs = []
 pfyl_alphas = []
 dp_alphas = []
@@ -33,7 +33,7 @@ for i in range(num_runs):
     weights, features, values = generate_data(
         num_items=num_items, capacity=capacity, seed=left_data[i]["seed"]
     )
-
+    
     optmodel = knapsackModel(weights=weights, capacity=capacity)
     data = dataset.optDataset(model=optmodel, feats=features, costs=values)
     dataloader = DataLoader(data, batch_size=1, shuffle=True)
